@@ -10,21 +10,20 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vscode = require('vscode');
+const { snapshotCustomizations, restoreCustomizations, clearCustomizations } = require('./customizations');
 
 const MARS = 'Arn · Mars — Amber Storm';
 const NEBULA = 'Arn · Nebula — Amethyst Void';
 const SANITIZED = 'arn-mars-amber-storm';
 
 const wb = () => vscode.workspace.getConfiguration('workbench');
-const ed = () => vscode.workspace.getConfiguration('editor');
 
 describe('arn.manageSkin — menu actions', function () {
     this.timeout(60000);
 
     let originals;
     let originalTheme;
-    let originalCC;
-    let originalTC;
+    let savedCustomizations;
 
     before(async () => {
         const ext = vscode.extensions.getExtension('jzbakh.antigravity-arn-skin');
@@ -32,15 +31,14 @@ describe('arn.manageSkin — menu actions', function () {
         await ext.activate();
 
         originalTheme = wb().get('colorTheme');
-        originalCC = wb().get('colorCustomizations');
-        originalTC = ed().get('tokenColorCustomizations');
+        savedCustomizations = snapshotCustomizations();
+        await clearCustomizations();
         await wb().update('colorTheme', MARS, vscode.ConfigurationTarget.Global);
     });
 
     after(async () => {
         await wb().update('colorTheme', originalTheme, vscode.ConfigurationTarget.Global);
-        await wb().update('colorCustomizations', originalCC, vscode.ConfigurationTarget.Global);
-        await ed().update('tokenColorCustomizations', originalTC, vscode.ConfigurationTarget.Global);
+        await restoreCustomizations(savedCustomizations);
     });
 
     beforeEach(() => {

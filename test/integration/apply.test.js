@@ -551,6 +551,7 @@ describe('Apply pipeline — full integration', function () {
             assert.equal(tc[`[${TEST_THEME_LABEL}]`], undefined,
                 'tokenColorCustomizations entry for this theme must be deleted');
             assert.deepEqual(ourSemantic(), {}, 'semanticTokenColorCustomizations entry must be deleted');
+            assert.equal(__testing.readStoredState(TEST_THEME_LABEL), null, 'the stored layers must be deleted');
         });
 
         it('is a no-op when there is nothing to reset (does not throw)', async () => {

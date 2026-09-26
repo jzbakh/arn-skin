@@ -83,6 +83,16 @@
         "category": "ARN-Skin"
       }
     ],
+    "configuration": {
+      "title": "ARN-Skin",
+      "properties": {
+        "arnSkin.customizations": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Per-theme customizations made through the **Skin** menu: Quick inputs and Advanced overrides. `workbench.colorCustomizations`, `editor.tokenColorCustomizations` and `editor.semanticTokenColorCustomizations` are generated from it."
+        }
+      }
+    },
     "jsonValidation": [
       {
         "fileMatch": "advanced-*.jsonc",

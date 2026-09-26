@@ -8,27 +8,27 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const vscode = require('vscode');
+const { snapshotCustomizations, restoreCustomizations, clearCustomizations, settle } = require('./customizations');
 
 const MARS = 'Arn · Mars — Amber Storm';
-const DEBOUNCE_MS = 400;
 
 const wb = () => vscode.workspace.getConfiguration('workbench');
 const ourColors = () => (wb().get('colorCustomizations') || {})[`[${MARS}]`] || {};
-const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
 describe('live apply — editing a customisation buffer', function () {
     this.timeout(60000);
 
     let quickUri;
     let originalTheme;
-    let originalCC;
+    let savedCustomizations;
 
     before(async () => {
         const ext = vscode.extensions.getExtension('jzbakh.antigravity-arn-skin');
         await ext.activate();
 
         originalTheme = wb().get('colorTheme');
-        originalCC = wb().get('colorCustomizations');
+        savedCustomizations = snapshotCustomizations();
+        await clearCustomizations();
         await wb().update('colorTheme', MARS, vscode.ConfigurationTarget.Global);
 
         // Let the command create the Quick buffer where the extension expects
@@ -47,8 +47,11 @@ describe('live apply — editing a customisation buffer', function () {
 
     after(async () => {
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+        // Closing the unsaved buffer restores the state from before its edits;
+        // that must land before the user's settings come back.
+        await settle();
         await wb().update('colorTheme', originalTheme, vscode.ConfigurationTarget.Global);
-        await wb().update('colorCustomizations', originalCC, vscode.ConfigurationTarget.Global);
+        await restoreCustomizations(savedCustomizations);
     });
 
     it('writes an edited base colour into settings once the debounce elapses', async () => {
@@ -75,7 +78,7 @@ describe('live apply — editing a customisation buffer', function () {
             --Opt-Cursor-Line-Glow: INHERIT;
         }`));
 
-        await wait(DEBOUNCE_MS * 3);
+        await settle();
 
         assert.equal(ourColors()['editor.background'], '#ABCDEF',
             'the live handler should have pushed the edit into settings');

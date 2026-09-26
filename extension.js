@@ -780,12 +780,9 @@ function inferCustomizationMode(uri, context) {
 // whose name corresponds to a theme that is no longer active. Also called
 // from resetTheme to clean up tabs after deleting the underlying file.
 //
-// `skipReapplySet` is an optional Set<string>. When provided, every URI we
-// are about to close is added to it. The activate-level onDidCloseTextDocument
-// handler consults this set and skips its re-apply pass for programmatic
-// closes — without this, closing Mars's Quick file during a Mars→Nebula
-// switch would race with `wb.update('colorTheme')` and end up writing
-// Mars's content as Nebula's customisation entry.
+// `skipReapplySet` is an optional Set<string>. Every URI about to close is
+// added to it, so the tab-close handler restores nothing: these buffers are
+// saved first and the operation closing them owns the settings.
 async function closeCustomisationFilesForTheme(themeLabel, skipReapplySet) {
     const sanitized = sanitizeLabel(themeLabel);
     const targets = new Set([
@@ -853,8 +850,8 @@ async function closeOtherCustomisationFilesForTheme(themeLabel, keepMode) {
     }
     if (tabsToClose.length === 0) return;
 
-    // Save dirty docs first so the user's pending edits land on disk and
-    // are realigned with settings via the on-close re-apply pass.
+    // Save dirty docs first: the pending edits are kept, and a saved buffer
+    // leaves no snapshot for the tab-close to restore.
     for (const tab of tabsToClose) {
         const doc = vscode.workspace.textDocuments.find(
             d => d.uri.toString() === tab.input.uri.toString()
@@ -865,6 +862,346 @@ async function closeOtherCustomisationFilesForTheme(themeLabel, keepMode) {
     }
 
     await vscode.window.tabGroups.close(tabsToClose);
+}
+
+// =========================================================================
+// CUSTOMIZATION STATE
+// One record per theme in the `arnSkin.customizations` user setting holds
+// what the user chose: the Quick inputs that differ from the theme, and the
+// Advanced overrides. The three editing files are views rendered from it and
+// the three VS Code settings are outputs computed from it. Settings outlive
+// the extension's storage folder, which a publisher or name change orphans.
+//
+// Precedence is per key, last action wins: an Advanced override beats the
+// Quick-derived value until the user changes the Quick input that drives that
+// key, at which point Quick takes the key back.
+// =========================================================================
+
+const QUICK_BASES = [
+    ['ui.baseBackground', 'bg', 'baseBackground'],
+    ['ui.baseForeground', 'text', 'baseForeground'],
+    ['ui.accentPrimary', 'accent', 'accentPrimary'],
+    ['ui.secondaryBackground', 'bgSec', 'secondaryBackground'],
+    ['ui.surfaceElevated', 'surfaceElevated', 'surfaceElevated'],
+    ['ui.borders', 'border', 'borders'],
+    ['ui.activeBorder', 'activeBorder', 'activeBorder'],
+    ['ui.selection', 'selection', 'selection'],
+    ['status.warning', 'warning', 'statusWarning'],
+    ['status.error', 'error', 'statusError'],
+    ['status.success', 'success', 'statusSuccess'],
+    ['status.info', 'info', 'statusInfo'],
+];
+const QUICK_TOGGLES = [
+    ['ui.borderless', 'Opt-Borderless-Mode', 'borderless'],
+    ['ui.pureBlack', 'Opt-Pure-Black-Mode', 'pureBlack'],
+    ['ui.activeTabHighlight', 'Opt-Active-Tab-Highlight', 'activeTabHighlight'],
+    ['ui.vividSelection', 'Opt-Vivid-Selection', 'vividSelection'],
+    ['ui.cursorLineGlow', 'Opt-Cursor-Line-Glow', 'cursorLineGlow'],
+];
+const TOGGLE_VALUES = new Set(['yes', 'no', 'inherit']);
+const HEX_COLOR_RE = /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+
+function toRgba8(hex) {
+    if (typeof hex !== 'string' || !HEX_COLOR_RE.test(hex)) return null;
+    const n = colorUtils.normalizeHex(hex);
+    return n.length === 7 ? n + 'FF' : n;
+}
+
+// #abc, #AABBCC and #AABBCCFF are the same colour.
+function sameColor(a, b) {
+    if (a === b) return true;
+    const A = toRgba8(a);
+    return A !== null && A === toRgba8(b);
+}
+
+function quickDefaults(themeJson) {
+    const bases = extractBaseColorsFromTheme(themeJson);
+    const quick = {};
+    for (const [key, base] of QUICK_BASES) quick[key] = bases[base];
+    for (const [key] of QUICK_TOGGLES) quick[key] = 'inherit';
+    return quick;
+}
+
+function expandQuick(stored, themeJson) {
+    return { ...quickDefaults(themeJson), ...(stored || {}) };
+}
+
+// Only what differs from the theme is stored, so a theme update still reaches
+// every base the user never touched.
+function compactQuick(quick, themeJson) {
+    const defaults = quickDefaults(themeJson);
+    const out = {};
+    for (const [key] of QUICK_BASES) {
+        if (quick[key] && !sameColor(quick[key], defaults[key])) out[key] = quick[key];
+    }
+    for (const [key] of QUICK_TOGGLES) {
+        if (quick[key] && quick[key] !== 'inherit') out[key] = quick[key];
+    }
+    return out;
+}
+
+// A half-typed hex or toggle keeps its previous value instead of briefly
+// dropping every key it drives, and with them the Advanced overrides on those
+// keys.
+function resolveQuickInput(cssText, previous) {
+    const parsed = parseQuickCss(cssText);
+    const quick = { ...previous };
+    const missing = [];
+    for (const [key] of QUICK_BASES) {
+        if (parsed[key]) quick[key] = parsed[key];
+        else missing.push(key);
+    }
+    for (const [key, cssVar] of QUICK_TOGGLES) {
+        if (new RegExp(`--${cssVar}:\\s*(yes|no|inherit)\\b`, 'i').test(cssText)) quick[key] = parsed[key];
+    }
+    return { quick, missing };
+}
+
+function deriveQuickColors(quick, themeJson) {
+    const bases = extractBaseColorsFromTheme(themeJson);
+    const dirty = {};
+    for (const [key, base] of QUICK_BASES) dirty[base] = !sameColor(quick[key], bases[base]);
+    return colorUtils.cleanUndefined(generateQuickTheme(quick, dirty, themeJson.type).colors);
+}
+
+function quickViewInputs(quick) {
+    const baseValues = {};
+    for (const [key, , name] of QUICK_BASES) baseValues[name] = quick[key];
+    const toggles = {};
+    for (const [key, , name] of QUICK_TOGGLES) toggles[name] = String(quick[key]).toUpperCase();
+    return { baseValues, toggles };
+}
+
+function dropSupersededOverrides(overrides, derivedBefore, derivedAfter) {
+    const out = {};
+    for (const [key, value] of Object.entries(overrides || {})) {
+        if (sameColor(derivedBefore[key], derivedAfter[key])) out[key] = value;
+    }
+    return out;
+}
+
+function diffColors(colors, baseline) {
+    const out = {};
+    for (const [key, value] of Object.entries(colors || {})) {
+        if (typeof value === 'string' && !sameColor(value, baseline[key])) out[key] = value;
+    }
+    return out;
+}
+
+function normalizeSemantic(tokens) {
+    const out = {};
+    for (const [key, value] of Object.entries(tokens || {})) {
+        if (typeof value === 'string') out[key] = { foreground: value };
+        else if (value && typeof value === 'object') out[key] = value;
+    }
+    return out;
+}
+
+// Key order and hex case never make two token styles different.
+function canonicalStyle(value) {
+    if (typeof value === 'string') return toRgba8(value) || value;
+    if (Array.isArray(value)) return value.map(canonicalStyle);
+    if (value && typeof value === 'object') {
+        const out = {};
+        for (const key of Object.keys(value).sort()) out[key] = canonicalStyle(value[key]);
+        return out;
+    }
+    return value;
+}
+const styleKey = (value) => JSON.stringify(canonicalStyle(value));
+
+function diffSemantic(tokens, themeTokens) {
+    const theirs = normalizeSemantic(themeTokens);
+    const out = {};
+    for (const [key, value] of Object.entries(normalizeSemantic(tokens))) {
+        if (theirs[key] === undefined || styleKey(value) !== styleKey(theirs[key])) out[key] = value;
+    }
+    return out;
+}
+
+// VS Code layers customised TextMate rules over the theme's own, so only the
+// rules the user changed or added are kept.
+function diffTextMate(rules, themeRules) {
+    const theirs = new Set((themeRules || []).map(styleKey));
+    const seen = new Set();
+    const out = [];
+    // VS Code reads textMateRules only when it is an array.
+    for (const rule of Array.isArray(rules) ? rules : []) {
+        if (!rule || typeof rule !== 'object' || !rule.settings) continue;
+        const key = styleKey(rule);
+        if (theirs.has(key) || seen.has(key)) continue;
+        seen.add(key);
+        out.push(rule);
+    }
+    return out;
+}
+
+// An override takes the place of the theme rule it was edited from, so the
+// view reads like the theme and diffs back to the same overrides.
+function renderTextMateView(themeRules, overrides) {
+    const base = themeRules || [];
+    const rules = [...base];
+    const identity = (rule) => JSON.stringify([rule.name ?? null, canonicalStyle(rule.scope ?? null)]);
+    // Positions of the theme rules not yet replaced, per identity, in order:
+    // one pass over each list, however many rules a theme or the user has.
+    const free = new Map();
+    base.forEach((rule, i) => {
+        const id = identity(rule);
+        if (!free.has(id)) free.set(id, []);
+        free.get(id).push(i);
+    });
+    for (const rule of overrides || []) {
+        const slots = free.get(identity(rule));
+        if (slots && slots.length) rules[slots.shift()] = rule;
+        else rules.push(rule);
+    }
+    return rules;
+}
+
+function compactState(state) {
+    const out = {};
+    if (state.quick && Object.keys(state.quick).length) out.quick = state.quick;
+    if (state.ui && Object.keys(state.ui).length) out.ui = state.ui;
+    if (state.semantic && Object.keys(state.semantic).length) out.semantic = state.semantic;
+    if (state.textMate && state.textMate.length) out.textMate = state.textMate;
+    return out;
+}
+
+// settings.json is hand-editable: keep only what the layers can use.
+function sanitizeState(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    const state = {};
+    if (raw.quick && typeof raw.quick === 'object') {
+        state.quick = {};
+        // The derivations read #RRGGBB(AA) only, as the Quick file is parsed.
+        for (const [key] of QUICK_BASES) {
+            if (HEX_COLOR_RE.test(raw.quick[key])) state.quick[key] = colorUtils.normalizeHex(raw.quick[key]);
+        }
+        for (const [key] of QUICK_TOGGLES) {
+            if (TOGGLE_VALUES.has(raw.quick[key])) state.quick[key] = raw.quick[key];
+        }
+    }
+    if (raw.ui && typeof raw.ui === 'object') {
+        state.ui = {};
+        for (const [key, value] of Object.entries(raw.ui)) {
+            if (typeof value === 'string') state.ui[key] = value;
+        }
+    }
+    if (raw.semantic && typeof raw.semantic === 'object') state.semantic = normalizeSemantic(raw.semantic);
+    if (Array.isArray(raw.textMate)) state.textMate = raw.textMate.filter(r => r && typeof r === 'object' && r.settings);
+    return compactState(state);
+}
+
+function composeOutputs(state, themeJson) {
+    return {
+        colors: { ...deriveQuickColors(expandQuick(state.quick, themeJson), themeJson), ...(state.ui || {}) },
+        textMateRules: state.textMate || [],
+        semanticRules: state.semantic || {},
+    };
+}
+
+// We own one key inside these entries. Anything else the user put there stays;
+// `legacy` keys are ones earlier versions wrote where VS Code never reads them.
+function withOwnedPart(entry, key, value, legacy = []) {
+    const next = { ...(entry || {}) };
+    for (const k of legacy) delete next[k];
+    if (value === undefined) delete next[key];
+    else next[key] = value;
+    return Object.keys(next).length ? next : undefined;
+}
+
+const themeSelector = (themeLabel) => `[${themeLabel}]`;
+
+function globalEntries(section, key) {
+    const inspected = vscode.workspace.getConfiguration(section).inspect(key);
+    return (inspected && inspected.globalValue) || {};
+}
+
+async function updateThemeEntry(section, key, themeLabel, value) {
+    const current = globalEntries(section, key);
+    const sel = themeSelector(themeLabel);
+    if (deepEqual(current[sel] ?? null, value ?? null)) return;
+    const next = { ...current };
+    if (value === undefined) delete next[sel];
+    else next[sel] = value;
+    await vscode.workspace.getConfiguration(section)
+        .update(key, Object.keys(next).length ? next : undefined, vscode.ConfigurationTarget.Global);
+}
+
+function readStoredState(themeLabel) {
+    const raw = globalEntries('arnSkin', 'customizations')[themeSelector(themeLabel)];
+    return raw === undefined ? null : sanitizeState(raw);
+}
+
+async function saveThemeState(themeLabel, themeJson, state) {
+    const clean = compactState(state);
+    const out = composeOutputs(clean, themeJson);
+    const sel = themeSelector(themeLabel);
+    await updateThemeEntry('arnSkin', 'customizations', themeLabel,
+        Object.keys(clean).length ? clean : undefined);
+    await updateThemeEntry('workbench', 'colorCustomizations', themeLabel,
+        Object.keys(out.colors).length ? out.colors : undefined);
+    await updateThemeEntry('editor', 'tokenColorCustomizations', themeLabel,
+        withOwnedPart(globalEntries('editor', 'tokenColorCustomizations')[sel], 'textMateRules',
+            out.textMateRules.length ? out.textMateRules : undefined, ['semanticTokenColors']));
+    await updateThemeEntry('editor', 'semanticTokenColorCustomizations', themeLabel,
+        withOwnedPart(globalEntries('editor', 'semanticTokenColorCustomizations')[sel], 'rules',
+            Object.keys(out.semanticRules).length ? out.semanticRules : undefined));
+}
+
+async function readTextIfExists(uri) {
+    try {
+        return new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
+    } catch {
+        return null;
+    }
+}
+
+// Earlier versions kept no state: the outputs were the only record, Advanced
+// wrote the whole theme into them, and the Quick file alone held the toggles.
+// The layers are rebuilt from both so the colours on screen do not change.
+async function loadThemeState(context, themeLabel, themeJson) {
+    const stored = readStoredState(themeLabel);
+    if (stored) return stored;
+
+    const sel = themeSelector(themeLabel);
+    const cc = globalEntries('workbench', 'colorCustomizations')[sel];
+    const tc = globalEntries('editor', 'tokenColorCustomizations')[sel];
+    const sc = globalEntries('editor', 'semanticTokenColorCustomizations')[sel];
+    if (!cc && !tc && !sc) return {};
+
+    let quick = {};
+    const quickText = await readTextIfExists(quickUriFor(context, themeLabel));
+    if (quickText !== null) {
+        quick = compactQuick(resolveQuickInput(quickText, quickDefaults(themeJson)).quick, themeJson);
+    }
+    const derived = deriveQuickColors(expandQuick(quick, themeJson), themeJson);
+    const state = compactState({
+        quick,
+        ui: diffColors(cc, { ...(themeJson.colors || {}), ...derived }),
+        semantic: diffSemantic({ ...(tc && tc.semanticTokenColors), ...(sc && sc.rules) }, themeJson.semanticTokenColors),
+        textMate: diffTextMate(tc && tc.textMateRules, themeJson.tokenColors),
+    });
+    await saveThemeState(themeLabel, themeJson, state);
+    return state;
+}
+
+// Views are rewritten from the state on every open, never under a buffer with
+// unsaved edits. Applying a freshly rendered view changes nothing, so the change
+// event the rewrite raises in a buffer VS Code still holds is harmless.
+async function writeView(context, uri, content) {
+    const open = vscode.workspace.textDocuments.find(d => d.uri.toString() === uri.toString());
+    if (open && open.isDirty) return;
+    if (await readTextIfExists(uri) === content) return;
+    await vscode.workspace.fs.createDirectory(context.globalStorageUri);
+    await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
+}
+
+function hasThemeCustomization(themeLabel) {
+    const sel = themeSelector(themeLabel);
+    return !!(vscode.workspace.getConfiguration('workbench').get('colorCustomizations') || {})[sel]
+        || !!(vscode.workspace.getConfiguration('editor').get('tokenColorCustomizations') || {})[sel]
+        || !!(vscode.workspace.getConfiguration('editor').get('semanticTokenColorCustomizations') || {})[sel];
 }
 
 // =========================================================================
@@ -935,50 +1272,9 @@ function buildQuickCssContent(baseValues, toggles) {
 
 async function ensureQuickFile(context, themeLabel, themeJson) {
     const uri = quickUriFor(context, themeLabel);
-
-    let exists = false;
-    try {
-        await vscode.workspace.fs.stat(uri);
-        exists = true;
-    } catch { /* missing */ }
-
-    if (exists) return uri;
-
-    await vscode.workspace.fs.createDirectory(context.globalStorageUri);
-
-    const wb = vscode.workspace.getConfiguration('workbench');
-    const userColors = (wb.get('colorCustomizations') || {})[`[${themeLabel}]`] || {};
-
-    const themeBases = extractBaseColorsFromTheme(themeJson);
-
-    // Prefer an existing user override (from a prior customisation) so the
-    // CSS file opens pre-populated with the values currently in effect.
-    const baseValues = {
-        baseBackground: userColors['editor.background'] || themeBases.bg,
-        baseForeground: userColors['editor.foreground'] || themeBases.text,
-        accentPrimary: userColors['button.background'] || themeBases.accent,
-        secondaryBackground: userColors['sideBar.background'] || themeBases.bgSec,
-        surfaceElevated: userColors['editorWidget.background'] || themeBases.surfaceElevated,
-        borders: userColors['sideBar.border'] || themeBases.border,
-        activeBorder: userColors['focusBorder'] || themeBases.activeBorder,
-        selection: userColors['editor.selectionBackground'] || themeBases.selection,
-        statusWarning: userColors['list.warningForeground'] || themeBases.warning,
-        statusError: userColors['list.errorForeground'] || themeBases.error,
-        statusSuccess: userColors['gitDecoration.addedResourceForeground'] || themeBases.success,
-        statusInfo: userColors['notificationsInfoIcon.foreground'] || themeBases.info,
-    };
-
-    // On first open we start from INHERIT so the theme's own defaults apply
-    const toggles = {
-        borderless: 'INHERIT',
-        pureBlack: 'INHERIT',
-        activeTabHighlight: 'INHERIT',
-        vividSelection: 'INHERIT',
-        cursorLineGlow: 'INHERIT',
-    };
-
-    const content = buildQuickCssContent(baseValues, toggles);
-    await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
+    const state = await loadThemeState(context, themeLabel, themeJson);
+    const { baseValues, toggles } = quickViewInputs(expandQuick(state.quick, themeJson));
+    await writeView(context, uri, buildQuickCssContent(baseValues, toggles));
     return uri;
 }
 
@@ -1078,19 +1374,8 @@ function mergeUserColorsIntoBlock(block, userColors) {
 
 async function ensureAdvancedUIFile(context, themeLabel, themeJson) {
     const uri = advancedUIUriFor(context, themeLabel);
-
-    let exists = false;
-    try {
-        await vscode.workspace.fs.stat(uri);
-        exists = true;
-    } catch { /* missing */ }
-
-    if (exists) return uri;
-
-    await vscode.workspace.fs.createDirectory(context.globalStorageUri);
-
-    const wb = vscode.workspace.getConfiguration('workbench');
-    const userColors = (wb.get('colorCustomizations') || {})[`[${themeLabel}]`] || {};
+    const state = await loadThemeState(context, themeLabel, themeJson);
+    const userColors = composeOutputs(state, themeJson).colors;
 
     const header =
         `/*
@@ -1105,6 +1390,7 @@ async function ensureAdvancedUIFile(context, themeLabel, themeJson) {
 
   For syntax highlighting, use "Advanced: Syntax Colors".
   To restore defaults, pick "Reset" from the Skin menu.
+  Rebuilt from your saved customizations on every open.
 ==========================================================
 */
 `;
@@ -1121,8 +1407,10 @@ async function ensureAdvancedUIFile(context, themeLabel, themeJson) {
         const themeEntry = packageJson.contributes.themes.find(t => t.label === themeLabel);
         if (themeEntry) {
             const themeFileUri = vscode.Uri.joinPath(context.extensionUri, themeEntry.path);
+            // The themes ship with CRLF; spliced under the LF header they would
+            // give the view mixed line endings, which VS Code rewrites on save.
             const themeRaw = new TextDecoder().decode(
-                await vscode.workspace.fs.readFile(themeFileUri));
+                await vscode.workspace.fs.readFile(themeFileUri)).replace(/\r\n/g, '\n');
             const block = extractColorsBlockFromTheme(themeRaw);
             const merged = mergeUserColorsIntoBlock(block, userColors);
             if (merged) {
@@ -1147,26 +1435,13 @@ async function ensureAdvancedUIFile(context, themeLabel, themeJson) {
         body = JSON.stringify(payload, null, 2);
     }
 
-    await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(header + body));
+    await writeView(context, uri, header + body);
     return uri;
 }
 
 async function ensureAdvancedSyntaxFile(context, themeLabel, themeJson) {
     const uri = advancedSyntaxUriFor(context, themeLabel);
-
-    let exists = false;
-    try {
-        await vscode.workspace.fs.stat(uri);
-        exists = true;
-    } catch { /* missing */ }
-
-    if (exists) return uri;
-
-    await vscode.workspace.fs.createDirectory(context.globalStorageUri);
-
-    const ed = vscode.workspace.getConfiguration('editor');
-    const userTokens = (ed.get('tokenColorCustomizations') || {})[`[${themeLabel}]`] || {};
-    const userSemantic = (ed.get('semanticTokenColorCustomizations') || {})[`[${themeLabel}]`] || {};
+    const state = await loadThemeState(context, themeLabel, themeJson);
 
     // Force every semantic token to the `{ foreground: "…" }` object form.
     // The JSON color picker fires reliably on object-shaped values whose
@@ -1176,16 +1451,7 @@ async function ensureAdvancedSyntaxFile(context, themeLabel, themeJson) {
     // Pair this with the schema fix that drops `anyOf` from each semantic
     // entry: together they put a working color swatch in the gutter for
     // every entry — exactly what the user expects when editing this file.
-    const rawSemantic = {
-        ...(themeJson.semanticTokenColors || {}),
-        ...(userTokens.semanticTokenColors || {}),
-        ...(userSemantic.rules || {}),
-    };
-    const semanticTokenColors = {};
-    for (const [k, v] of Object.entries(rawSemantic)) {
-        if (typeof v === 'string') semanticTokenColors[k] = { foreground: v };
-        else if (v && typeof v === 'object') semanticTokenColors[k] = v;
-    }
+    const semanticTokenColors = { ...normalizeSemantic(themeJson.semanticTokenColors), ...(state.semantic || {}) };
 
     // No `$schema` line is written here. Declaring `vscode://schemas/color-theme`
     // would pin the file to VSCode's built-in color-theme schema, whose
@@ -1200,15 +1466,7 @@ async function ensureAdvancedSyntaxFile(context, themeLabel, themeJson) {
     // `semanticTokenColors[token].foreground` in the resolver's path.
     const payload = {
         semanticTokenColors,
-        // Merge — never replace. The theme's tokenColors come first, then
-        // any textMateRules already present in the user's configuration
-        // append at the end so the cascade puts customisations on top via
-        // TextMate ordering. Replacing would silently erase the theme's
-        // per-language scopes the moment the user opens this file.
-        tokenColors: [
-            ...(Array.isArray(themeJson.tokenColors) ? themeJson.tokenColors : []),
-            ...(Array.isArray(userTokens.textMateRules) ? userTokens.textMateRules : []),
-        ],
+        tokenColors: renderTextMateView(themeJson.tokenColors, state.textMate),
     };
 
     const header =
@@ -1223,6 +1481,7 @@ async function ensureAdvancedSyntaxFile(context, themeLabel, themeJson) {
 
   For UI chrome, use "Advanced: UI Colors".
   To restore defaults, pick "Reset" from the Skin menu.
+  Rebuilt from your saved customizations on every open.
 
 ==========================================================
 Color picker tip for Advanced Syntax editing
@@ -1242,7 +1501,7 @@ slow while editing this file.
 */
 `;
     const body = JSON.stringify(payload, null, 2);
-    await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(header + body));
+    await writeView(context, uri, header + body);
     return uri;
 }
 
@@ -1287,76 +1546,29 @@ function parseQuickCss(text) {
 // APPLY — writes customizations to workbench/editor configuration
 // =========================================================================
 
-async function applyQuick(context, cssText) {
-    const active = await getActiveThemeData(context);
-    if (!active) return;
-    const { themeLabel, themeJson } = active;
+// `themeLabel` defaults to the active theme.
+async function resolveTheme(context, themeLabel) {
+    return themeLabel ? getThemeData(context, themeLabel) : getActiveThemeData(context);
+}
 
-    const parsed = parseQuickCss(cssText);
+async function applyQuick(context, cssText, themeLabel) {
+    const theme = await resolveTheme(context, themeLabel);
+    if (!theme) return;
+    const { themeJson } = theme;
+    const state = await loadThemeState(context, theme.themeLabel, themeJson);
 
-    // Surface missing/unparseable colour variables to the user (rate-limited).
-    // Toggles never carry a colour so they're excluded from this check.
-    const TOGGLE_KEYS = new Set([
-        'ui.borderless', 'ui.pureBlack', 'ui.activeTabHighlight',
-        'ui.vividSelection', 'ui.cursorLineGlow',
-    ]);
-    const missing = Object.entries(parsed)
-        .filter(([k]) => k.startsWith('ui.') || k.startsWith('status.'))
-        .filter(([k]) => !TOGGLE_KEYS.has(k))
-        .filter(([, v]) => v == null)
-        .map(([k]) => k);
+    const before = expandQuick(state.quick, themeJson);
+    const { quick: after, missing } = resolveQuickInput(cssText, before);
     if (missing.length > 0 && typeof context.__arnReportMissingVars === 'function') {
         context.__arnReportMissingVars(missing);
     }
 
-    // Dirty tracking — a base is "dirty" when its CSS value diverges from
-    // the theme default. Derived keys are only emitted for dirty bases, so
-    // untouched bases let the theme's own values transparently pass through.
-    const themeBases = extractBaseColorsFromTheme(themeJson);
-    const toRgba8 = hex => {
-        if (!hex || typeof hex !== 'string') return null;
-        const n = colorUtils.normalizeHex(hex);
-        return n.length === 7 ? n + 'FF' : n;
-    };
-    const eq = (a, b) => {
-        const A = toRgba8(a);
-        const B = toRgba8(b);
-        return A !== null && A === B;
-    };
-    const dirty = {
-        bg: !eq(parsed['ui.baseBackground'], themeBases.bg),
-        text: !eq(parsed['ui.baseForeground'], themeBases.text),
-        accent: !eq(parsed['ui.accentPrimary'], themeBases.accent),
-        bgSec: !eq(parsed['ui.secondaryBackground'], themeBases.bgSec),
-        surfaceElevated: !eq(parsed['ui.surfaceElevated'], themeBases.surfaceElevated),
-        border: !eq(parsed['ui.borders'], themeBases.border),
-        activeBorder: !eq(parsed['ui.activeBorder'], themeBases.activeBorder),
-        selection: !eq(parsed['ui.selection'], themeBases.selection),
-        warning: !eq(parsed['status.warning'], themeBases.warning),
-        error: !eq(parsed['status.error'], themeBases.error),
-        success: !eq(parsed['status.success'], themeBases.success),
-        info: !eq(parsed['status.info'], themeBases.info),
-    };
-
-    const { colors } = generateQuickTheme(parsed, dirty, themeJson.type);
-
-    const wb = vscode.workspace.getConfiguration('workbench');
-
-    // Replace the entire entry rather than merging into it: a base that has
-    // been reset to its theme default must drop every key that depended on
-    // it, otherwise stale derived keys would linger across edits.
-    const cleanedColors = colorUtils.cleanUndefined(colors);
-    const existingCC = { ...(wb.get('colorCustomizations') || {}) };
-    if (Object.keys(cleanedColors).length === 0) {
-        delete existingCC[`[${themeLabel}]`];
-    } else {
-        existingCC[`[${themeLabel}]`] = cleanedColors;
-    }
-    const finalCC = Object.keys(existingCC).length ? existingCC : undefined;
-    await wb.update('colorCustomizations', finalCC, vscode.ConfigurationTarget.Global);
-    // Quick mode does not own `editor.tokenColorCustomizations` — that
-    // surface belongs exclusively to Advanced Syntax. We leave it alone so
-    // any semantic / TextMate overrides the user set elsewhere survive.
+    await saveThemeState(theme.themeLabel, themeJson, {
+        ...state,
+        quick: compactQuick(after, themeJson),
+        ui: dropSupersededOverrides(state.ui,
+            deriveQuickColors(before, themeJson), deriveQuickColors(after, themeJson)),
+    });
 }
 
 // Deep-equality between two plain JSON values (null/string/number/bool/
@@ -1380,10 +1592,10 @@ function deepEqual(a, b) {
     return true;
 }
 
-async function applyAdvancedUI(context, jsonText) {
-    const active = await getActiveThemeData(context);
-    if (!active) return;
-    const { themeLabel, themeJson } = active;
+async function applyAdvancedUI(context, jsonText, themeLabel) {
+    const theme = await resolveTheme(context, themeLabel);
+    if (!theme) return;
+    const { themeJson } = theme;
 
     let payload;
     try {
@@ -1393,31 +1605,21 @@ async function applyAdvancedUI(context, jsonText) {
         return;
     }
     if (!payload || typeof payload !== 'object') return;
+    const colors = payload.colors && typeof payload.colors === 'object' && !Array.isArray(payload.colors)
+        ? payload.colors : {};
 
-    const colors = colorUtils.cleanUndefined(payload.colors || {});
-
-    // If the user's edited file matches the theme's colours exactly, the
-    // user has no actual customisation to persist. Clearing the entry
-    // means the status bar reverts to "Skin" (no "Customized" badge),
-    // which is the correct state after a close-without-save scenario:
-    // the document text reverts to the on-disk default, the close
-    // handler re-applies that default, and we land here with a
-    // theme-equal payload.
-    const wb = vscode.workspace.getConfiguration('workbench');
-    const existingCC = { ...(wb.get('colorCustomizations') || {}) };
-    if (deepEqual(colors, themeJson.colors || {}) || Object.keys(colors).length === 0) {
-        delete existingCC[`[${themeLabel}]`];
-    } else {
-        existingCC[`[${themeLabel}]`] = colors;
-    }
-    const finalCC = Object.keys(existingCC).length ? existingCC : undefined;
-    await wb.update('colorCustomizations', finalCC, vscode.ConfigurationTarget.Global);
+    const state = await loadThemeState(context, theme.themeLabel, themeJson);
+    const derived = deriveQuickColors(expandQuick(state.quick, themeJson), themeJson);
+    await saveThemeState(theme.themeLabel, themeJson, {
+        ...state,
+        ui: diffColors(colors, { ...(themeJson.colors || {}), ...derived }),
+    });
 }
 
-async function applyAdvancedSyntax(context, jsonText) {
-    const active = await getActiveThemeData(context);
-    if (!active) return;
-    const { themeLabel, themeJson } = active;
+async function applyAdvancedSyntax(context, jsonText, themeLabel) {
+    const theme = await resolveTheme(context, themeLabel);
+    if (!theme) return;
+    const { themeJson } = theme;
 
     let payload;
     try {
@@ -1428,52 +1630,15 @@ async function applyAdvancedSyntax(context, jsonText) {
     }
     if (!payload || typeof payload !== 'object') return;
 
-    const semanticTokenColors = colorUtils.cleanUndefined(payload.semanticTokenColors || {});
-    const tokenColors = Array.isArray(payload.tokenColors) ? payload.tokenColors : [];
-
-    // Re-normalise the theme's semantic tokens to the object form so the
-    // matchesTheme comparison stays in lock-step with the way
-    // ensureAdvancedSyntaxFile writes its output. A theme that ships
-    // string shorthand for some tokens still reads as "no change" the
-    // moment the user opens the file unedited.
-    const themeSemRaw = themeJson.semanticTokenColors || {};
-    const themeSem = {};
-    for (const [k, v] of Object.entries(themeSemRaw)) {
-        if (typeof v === 'string') themeSem[k] = { foreground: v };
-        else if (v && typeof v === 'object') themeSem[k] = v;
-    }
-    const themeTokenColors = Array.isArray(themeJson.tokenColors) ? themeJson.tokenColors : [];
-
-    const matchesTheme =
-        deepEqual(semanticTokenColors, themeSem) &&
-        deepEqual(tokenColors, themeTokenColors);
-
-    // TextMate rules go to editor.tokenColorCustomizations, semantic rules to
-    // editor.semanticTokenColorCustomizations: VS Code ignores a
-    // semanticTokenColors key in the former, where earlier versions wrote it.
-    // Keys the user added to either entry are kept.
-    const sel = `[${themeLabel}]`;
-    const ed = vscode.workspace.getConfiguration('editor');
-    const existingTC = { ...(ed.get('tokenColorCustomizations') || {}) };
-    const existingSC = { ...(ed.get('semanticTokenColorCustomizations') || {}) };
-    const tcEntry = { ...(existingTC[sel] || {}) };
-    const scEntry = { ...(existingSC[sel] || {}) };
-    delete tcEntry.semanticTokenColors;
-    if (matchesTheme) {
-        delete tcEntry.textMateRules;
-        delete scEntry.rules;
-    } else {
-        tcEntry.textMateRules = tokenColors;
-        scEntry.rules = semanticTokenColors;
-    }
-    if (Object.keys(tcEntry).length) existingTC[sel] = tcEntry;
-    else delete existingTC[sel];
-    if (Object.keys(scEntry).length) existingSC[sel] = scEntry;
-    else delete existingSC[sel];
-    await ed.update('tokenColorCustomizations',
-        Object.keys(existingTC).length ? existingTC : undefined, vscode.ConfigurationTarget.Global);
-    await ed.update('semanticTokenColorCustomizations',
-        Object.keys(existingSC).length ? existingSC : undefined, vscode.ConfigurationTarget.Global);
+    const themeRules = themeJson.tokenColors || [];
+    const edited = diffTextMate(Array.isArray(payload.tokenColors) ? payload.tokenColors : [], themeRules);
+    const state = await loadThemeState(context, theme.themeLabel, themeJson);
+    await saveThemeState(theme.themeLabel, themeJson, {
+        ...state,
+        semantic: diffSemantic(payload.semanticTokenColors, themeJson.semanticTokenColors),
+        // Canonical order, so re-applying an unedited view is a no-op.
+        textMate: diffTextMate(renderTextMateView(themeRules, edited), themeRules),
+    });
 }
 
 // =========================================================================
@@ -1489,23 +1654,10 @@ async function resetTheme(context, themeLabel, skipReapplySet) {
     // during the close → delete race.
     await closeCustomisationFilesForTheme(themeLabel, skipReapplySet);
 
-    const wb = vscode.workspace.getConfiguration('workbench');
-    const ed = vscode.workspace.getConfiguration('editor');
-
-    const cc = { ...(wb.get('colorCustomizations') || {}) };
-    delete cc[`[${themeLabel}]`];
-    const newCC = Object.keys(cc).length ? cc : undefined;
-    await wb.update('colorCustomizations', newCC, vscode.ConfigurationTarget.Global);
-
-    const tc = { ...(ed.get('tokenColorCustomizations') || {}) };
-    delete tc[`[${themeLabel}]`];
-    const newTC = Object.keys(tc).length ? tc : undefined;
-    await ed.update('tokenColorCustomizations', newTC, vscode.ConfigurationTarget.Global);
-
-    const sc = { ...(ed.get('semanticTokenColorCustomizations') || {}) };
-    delete sc[`[${themeLabel}]`];
-    const newSC = Object.keys(sc).length ? sc : undefined;
-    await ed.update('semanticTokenColorCustomizations', newSC, vscode.ConfigurationTarget.Global);
+    await updateThemeEntry('arnSkin', 'customizations', themeLabel, undefined);
+    await updateThemeEntry('workbench', 'colorCustomizations', themeLabel, undefined);
+    await updateThemeEntry('editor', 'tokenColorCustomizations', themeLabel, undefined);
+    await updateThemeEntry('editor', 'semanticTokenColorCustomizations', themeLabel, undefined);
 
     // Delete associated files (best-effort, ignore if missing)
     const filesToDelete = [
@@ -1520,30 +1672,35 @@ async function resetTheme(context, themeLabel, skipReapplySet) {
     }
 }
 
-function hasThemeCustomization(themeLabel) {
-    const sel = `[${themeLabel}]`;
-    return !!(vscode.workspace.getConfiguration('workbench').get('colorCustomizations') || {})[sel]
-        || !!(vscode.workspace.getConfiguration('editor').get('tokenColorCustomizations') || {})[sel]
-        || !!(vscode.workspace.getConfiguration('editor').get('semanticTokenColorCustomizations') || {})[sel];
-}
-
 // =========================================================================
 // THEME DATA LOADER
 // =========================================================================
 
+async function readPackageJson(context) {
+    const data = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(context.extensionUri, 'package.json'));
+    return parseJsonc(new TextDecoder().decode(data));
+}
+
 async function getActiveThemeData(context) {
     const themeLabel = vscode.workspace.getConfiguration('workbench').get('colorTheme');
     if (!themeLabel || !themeLabel.startsWith('Arn')) return null;
+    return getThemeData(context, themeLabel);
+}
 
-    const extUri = context.extensionUri;
-    const packageJsonUri = vscode.Uri.joinPath(extUri, 'package.json');
-    const pkgData = await vscode.workspace.fs.readFile(packageJsonUri);
-    const packageJson = parseJsonc(new TextDecoder().decode(pkgData));
+// Each file belongs to the theme in its name, whichever theme is active.
+async function themeLabelForUri(context, uri) {
+    const m = /^(?:quick|advanced-ui|advanced-syntax)-(.+)\.(?:css|jsonc)$/.exec(uri.path.split('/').pop() || '');
+    if (!m) return null;
+    const theme = (await readPackageJson(context)).contributes.themes.find(t => sanitizeLabel(t.label) === m[1]);
+    return theme ? theme.label : null;
+}
 
+async function getThemeData(context, themeLabel) {
+    const packageJson = await readPackageJson(context);
     const themeEntry = packageJson.contributes.themes.find(t => t.label === themeLabel);
     if (!themeEntry) return null;
 
-    const liveFileUri = vscode.Uri.joinPath(extUri, themeEntry.path);
+    const liveFileUri = vscode.Uri.joinPath(context.extensionUri, themeEntry.path);
     const themeData = await vscode.workspace.fs.readFile(liveFileUri);
     const themeString = new TextDecoder().decode(themeData);
 
@@ -1569,18 +1726,30 @@ function activate(context) {
     statusBarItem.command = 'arn.manageSkin';
     context.subscriptions.push(statusBarItem);
 
-    let applyTimeout = null;
-    let isApplying = false;
+    // Every read-modify-write of the state runs through this queue, one at a
+    // time and in the order the events arrived: an apply, a save and a tab close
+    // racing each other can otherwise restore a snapshot over a saved edit.
+    let queue = Promise.resolve();
+    const enqueue = (task) => {
+        const run = queue.then(task);
+        queue = run.catch(() => { /* reported by the caller */ });
+        return run;
+    };
 
-    // URIs we are about to programmatically close (during a theme switch
-    // or a Reset). The onDidCloseTextDocument handler consults this set
-    // and skips its disk-readback re-apply for these closes — without
-    // it, closing Mars's Quick file during a Mars→Nebula switch would
-    // race with `wb.update('colorTheme')` and write Mars's content as
-    // Nebula's customisation. User-initiated closes (Ctrl+W, click X)
-    // are NOT in the set, so they still get the close-realigns-disk
-    // behaviour that fixes the phantom-customised status bar.
+    // URIs we close ourselves (theme switch, Reset): the operation owns the
+    // settings, so their tab-close restores nothing.
     const skipReapplyUris = new Set();
+
+    // Per theme, the state from before the first unsaved edit. Closing the tab
+    // without saving restores it, undoing the live preview — including any
+    // Advanced override a Quick edit took over.
+    const editSnapshots = new Map();
+
+    // Buffers left dirty by a previous session have no snapshot; discarding
+    // them falls back to re-applying the file on disk.
+    const revertFromDisk = new Set(vscode.workspace.textDocuments
+        .filter(d => d.isDirty && inferCustomizationMode(d.uri, context))
+        .map(d => d.uri.toString()));
 
     // Rate-limited error reporter — surface apply failures in the UI but don't
     // spam the user with toasts when they're typing through a broken state.
@@ -1636,69 +1805,113 @@ function activate(context) {
         })
     );
 
+    const applyByMode = async (mode, text, themeLabel) => {
+        if (mode === 'quick') {
+            await applyQuick(context, text, themeLabel);
+        } else if (mode === 'advanced-ui') {
+            await applyAdvancedUI(context, text, themeLabel);
+        } else if (mode === 'advanced-syntax') {
+            await applyAdvancedSyntax(context, text, themeLabel);
+        }
+    };
+
+    const applyDocument = async (doc, mode) => {
+        // A file gone from disk was reset or deleted: its buffer no longer holds
+        // a customisation. Antigravity edits a buffer while saving it, and the
+        // reset saves before deleting, so that edit would otherwise re-apply.
+        try {
+            await vscode.workspace.fs.stat(doc.uri);
+        } catch {
+            return;
+        }
+        const themeLabel = await themeLabelForUri(context, doc.uri);
+        if (!themeLabel) return;
+        // A save queued before this apply leaves a clean buffer: nothing for a
+        // close to discard. A buffer left dirty by a previous session has no
+        // snapshot: the state already holds its unsaved edits, and discarding
+        // it re-applies the file on disk instead.
+        if (doc.isDirty && !editSnapshots.has(themeLabel) && !revertFromDisk.has(doc.uri.toString())) {
+            const theme = await getThemeData(context, themeLabel);
+            if (theme) editSnapshots.set(themeLabel, await loadThemeState(context, themeLabel, theme.themeJson));
+        }
+        await applyByMode(mode, doc.getText(), themeLabel);
+    };
+
+    const pendingApplies = new Map();
+    const scheduleApply = (doc, mode) => {
+        const key = doc.uri.toString();
+        const previous = pendingApplies.get(key);
+        if (previous) clearTimeout(previous.timer);
+        const run = () => {
+            pendingApplies.delete(key);
+            return enqueue(() => applyDocument(doc, mode)).catch(reportApplyError);
+        };
+        pendingApplies.set(key, { timer: setTimeout(run, 400), run });
+    };
+    const flushPendingApply = (key) => {
+        const pending = pendingApplies.get(key);
+        if (!pending) return;
+        clearTimeout(pending.timer);
+        pending.run();
+    };
+
     context.subscriptions.push(
         vscode.workspace.onDidChangeTextDocument(e => {
             const mode = inferCustomizationMode(e.document.uri, context);
-            if (!mode) return;
-            if (isApplying) return;
-
-            if (applyTimeout) clearTimeout(applyTimeout);
-            applyTimeout = setTimeout(async () => {
-                try {
-                    isApplying = true;
-                    const text = e.document.getText();
-                    if (mode === 'quick') await applyQuick(context, text);
-                    else if (mode === 'advanced-ui') await applyAdvancedUI(context, text);
-                    else if (mode === 'advanced-syntax') await applyAdvancedSyntax(context, text);
-                } catch (err) {
-                    reportApplyError(err);
-                } finally {
-                    isApplying = false;
-                }
-            }, 400);
+            if (mode && e.contentChanges.length > 0) scheduleApply(e.document, mode);
         })
     );
 
-    // When a customisation document is closed, re-apply its on-disk
-    // content. The change handler above writes user edits to settings on
-    // every keystroke (live preview); if the user closes without saving,
-    // the in-memory edits evaporate but the live-preview writes do not —
-    // settings would diverge from disk and the status bar would falsely
-    // claim the theme is customised. Re-applying the disk content here
-    // realigns settings with the persisted file: an unedited or discarded
-    // file equals the theme defaults, so applyAdvancedUI / Syntax detect
-    // the match and clear the entry.
     context.subscriptions.push(
-        vscode.workspace.onDidCloseTextDocument(async (doc) => {
-            const mode = inferCustomizationMode(doc.uri, context);
-            if (!mode) return;
-            if (isApplying) return;
+        vscode.workspace.onDidSaveTextDocument(doc => {
+            if (!inferCustomizationMode(doc.uri, context)) return;
+            const key = doc.uri.toString();
+            // What was saved must be what the state holds, debounce or not.
+            flushPendingApply(key);
+            enqueue(async () => {
+                revertFromDisk.delete(key);
+                const themeLabel = await themeLabelForUri(context, doc.uri);
+                if (themeLabel) editSnapshots.delete(themeLabel);
+            }).catch(reportApplyError);
+        })
+    );
 
-            // Programmatic closes (theme switch / reset) flagged this URI
-            // before triggering the close. Skip the re-apply so we don't
-            // race with the operation that's currently running.
-            const uriStr = doc.uri.toString();
-            if (skipReapplyUris.has(uriStr)) {
-                skipReapplyUris.delete(uriStr);
-                return;
-            }
-
-            if (applyTimeout) {
-                clearTimeout(applyTimeout);
-                applyTimeout = null;
-            }
-            try {
-                isApplying = true;
-                const buf = await vscode.workspace.fs.readFile(doc.uri);
-                const text = new TextDecoder().decode(buf);
-                if (mode === 'quick') await applyQuick(context, text);
-                else if (mode === 'advanced-ui') await applyAdvancedUI(context, text);
-                else if (mode === 'advanced-syntax') await applyAdvancedSyntax(context, text);
-            } catch {
-                // File missing (Reset deleted it) or unreadable — nothing
-                // to realign. Stay silent.
-            } finally {
-                isApplying = false;
+    // Tab events, not onDidCloseTextDocument: VS Code disposes a closed
+    // document whenever it likes, and a late restore would clobber whatever
+    // the user did in between.
+    context.subscriptions.push(
+        vscode.window.tabGroups.onDidChangeTabs(({ closed }) => {
+            for (const tab of closed) {
+                const uri = tab.input instanceof vscode.TabInputText ? tab.input.uri : null;
+                const mode = uri && inferCustomizationMode(uri, context);
+                if (!mode) continue;
+                const key = uri.toString();
+                const stillOpen = vscode.window.tabGroups.all.some(g => g.tabs.some(t =>
+                    t.input instanceof vscode.TabInputText && t.input.uri.toString() === key));
+                if (stillOpen) continue;
+                // Read once the last tab is gone: a file open in two groups
+                // closes twice, and the second close is ours too.
+                const ours = skipReapplyUris.delete(key);
+                // A keystroke still waiting belongs to the edits being discarded.
+                const pending = pendingApplies.get(key);
+                if (pending && !ours) {
+                    clearTimeout(pending.timer);
+                    pendingApplies.delete(key);
+                }
+                enqueue(async () => {
+                    const themeLabel = await themeLabelForUri(context, uri);
+                    if (!themeLabel) return;
+                    const snapshot = editSnapshots.get(themeLabel);
+                    editSnapshots.delete(themeLabel);
+                    if (ours) return;
+                    if (snapshot) {
+                        const theme = await getThemeData(context, themeLabel);
+                        if (theme) await saveThemeState(themeLabel, theme.themeJson, snapshot);
+                    } else if (revertFromDisk.delete(key)) {
+                        const text = await readTextIfExists(uri);
+                        if (text !== null) await applyByMode(mode, text, themeLabel);
+                    }
+                }).catch(reportApplyError);
             }
         })
     );
@@ -1748,9 +1961,13 @@ function activate(context) {
             });
             if (!choice) return;
 
+            // Every keystroke typed so far reaches the state before this action
+            // reads or replaces it.
+            for (const key of [...pendingApplies.keys()]) flushPendingApply(key);
+
             if (choice.action === 'quick') {
                 try {
-                    const uri = await ensureQuickFile(context, themeLabel, themeJson);
+                    const uri = await enqueue(() => ensureQuickFile(context, themeLabel, themeJson));
                     const doc = await vscode.workspace.openTextDocument(uri);
                     await vscode.window.showTextDocument(doc);
                     await closeOtherCustomisationFilesForTheme(themeLabel, 'quick');
@@ -1763,7 +1980,7 @@ function activate(context) {
 
             if (choice.action === 'advanced-ui') {
                 try {
-                    const uri = await ensureAdvancedUIFile(context, themeLabel, themeJson);
+                    const uri = await enqueue(() => ensureAdvancedUIFile(context, themeLabel, themeJson));
                     const doc = await vscode.workspace.openTextDocument(uri);
                     await vscode.window.showTextDocument(doc);
                     await closeOtherCustomisationFilesForTheme(themeLabel, 'advanced-ui');
@@ -1776,7 +1993,7 @@ function activate(context) {
 
             if (choice.action === 'advanced-syntax') {
                 try {
-                    const uri = await ensureAdvancedSyntaxFile(context, themeLabel, themeJson);
+                    const uri = await enqueue(() => ensureAdvancedSyntaxFile(context, themeLabel, themeJson));
                     const doc = await vscode.workspace.openTextDocument(uri);
                     await vscode.window.showTextDocument(doc);
                     await closeOtherCustomisationFilesForTheme(themeLabel, 'advanced-syntax');
@@ -1798,25 +2015,12 @@ function activate(context) {
                 );
                 if (confirm !== 'Reset') return;
 
-                // The 400ms debounced apply may have been armed by a keystroke
-                // moments before the user opened this menu. If we let it fire
-                // it would re-write the colorCustomizations entry we are
-                // about to delete and the user would have to click Reset
-                // twice. Cancel any pending apply and block new ones until
-                // resetTheme has finished mutating the configuration.
-                if (applyTimeout) {
-                    clearTimeout(applyTimeout);
-                    applyTimeout = null;
-                }
-                isApplying = true;
                 try {
-                    await resetTheme(context, themeLabel, skipReapplyUris);
+                    await enqueue(() => resetTheme(context, themeLabel, skipReapplyUris));
                     vscode.window.showInformationMessage(`Default colors restored for ${themeLabel}.`);
                 } catch (err) {
                     vscode.window.showErrorMessage("Reset failed: " + err.message);
                     console.error('[ARN]', err);
-                } finally {
-                    isApplying = false;
                 }
                 return;
             }
@@ -1839,28 +2043,11 @@ function activate(context) {
                         placeHolder: "Choose an ARN-Skin theme to apply"
                     });
                     if (selected && selected.label !== themeLabel) {
-                        // Cancel any pending debounced apply — its target
-                        // is the theme we are leaving, so letting it fire
-                        // after the switch would write the outgoing theme's
-                        // content as the new theme's customisation.
-                        if (applyTimeout) {
-                            clearTimeout(applyTimeout);
-                            applyTimeout = null;
-                        }
-                        isApplying = true;
-                        try {
-                            // Close any open customisation files of the
-                            // outgoing theme. The skipReapplyUris stamp
-                            // tells the close handler to bail on its
-                            // re-apply pass — without it the close would
-                            // race with the colorTheme update below and
-                            // contaminate the new theme's settings entry.
+                        await enqueue(async () => {
                             await closeCustomisationFilesForTheme(themeLabel, skipReapplyUris);
                             const wb = vscode.workspace.getConfiguration('workbench');
                             await wb.update('colorTheme', selected.label, vscode.ConfigurationTarget.Global);
-                        } finally {
-                            isApplying = false;
-                        }
+                        });
                     }
                 } catch (err) {
                     vscode.window.showErrorMessage("Unable to list themes: " + err.message);
@@ -1870,6 +2057,19 @@ function activate(context) {
             }
         })
     );
+
+    // Resolves once no edit waits for its debounce and the queue is empty. The
+    // integration tests read it from the extension's exports.
+    return {
+        whenIdle: async () => {
+            for (;;) {
+                const current = queue;
+                await current;
+                if (pendingApplies.size === 0 && queue === current) return;
+                await new Promise(r => setTimeout(r, 50));
+            }
+        },
+    };
 }
 
 function deactivate() { }
@@ -1907,4 +2107,24 @@ module.exports.__testing = {
     applyAdvancedSyntax,
     resetTheme,
     getActiveThemeData,
+    getThemeData,
+    themeLabelForUri,
+    sameColor,
+    quickDefaults,
+    expandQuick,
+    compactQuick,
+    resolveQuickInput,
+    deriveQuickColors,
+    dropSupersededOverrides,
+    diffColors,
+    normalizeSemantic,
+    diffSemantic,
+    diffTextMate,
+    renderTextMateView,
+    sanitizeState,
+    composeOutputs,
+    withOwnedPart,
+    readStoredState,
+    loadThemeState,
+    saveThemeState,
 };

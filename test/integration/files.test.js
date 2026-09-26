@@ -4,6 +4,7 @@ const path = require('node:path');
 const os = require('node:os');
 const vscode = require('vscode');
 const { __testing } = require('../../extension');
+const { snapshotCustomizations, restoreCustomizations, clearCustomizations } = require('./customizations');
 
 const {
     ensureQuickFile,
@@ -20,16 +21,23 @@ describe('File creation in globalStorageUri', () => {
     let tmpDir;
     let themeJson;
     let fakeCtx;
+    let savedCustomizations;
 
     before(() => {
         themeJson = parseJsonc(
             fs.readFileSync(path.join(REPO_ROOT, 'themes', 'arn-mars.json'), 'utf8')
         );
+        savedCustomizations = snapshotCustomizations();
+    });
+
+    after(async () => {
+        await restoreCustomizations(savedCustomizations);
     });
 
     beforeEach(async () => {
         tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'arn-test-'));
         fakeCtx = { globalStorageUri: vscode.Uri.file(tmpDir) };
+        await clearCustomizations();
     });
 
     afterEach(async () => {
@@ -91,13 +99,39 @@ describe('File creation in globalStorageUri', () => {
         assert.equal(content.includes('--Syntax-Numbers:'),   false);
     });
 
-    it('ensureQuickFile is idempotent (does not overwrite existing file)', async () => {
+    it('ensureQuickFile rebuilds a stale file from the stored layers', async () => {
         const uri1 = await ensureQuickFile(fakeCtx, MARS_LABEL, themeJson);
-        fs.writeFileSync(uri1.fsPath, '/* hand-edited */');
+        const fresh = fs.readFileSync(uri1.fsPath, 'utf8');
+        fs.writeFileSync(uri1.fsPath, '/* stale copy from another machine */');
+
         const uri2 = await ensureQuickFile(fakeCtx, MARS_LABEL, themeJson);
+
         assert.equal(uri1.fsPath, uri2.fsPath);
-        const content = fs.readFileSync(uri2.fsPath, 'utf8');
-        assert.equal(content, '/* hand-edited */', 'must not overwrite existing content');
+        assert.equal(fs.readFileSync(uri2.fsPath, 'utf8'), fresh);
+    });
+
+    it('ensureQuickFile never writes under a buffer with unsaved edits', async () => {
+        // Its own folder: on Windows the open buffer locks it until VS Code
+        // drops the document, which the shared afterEach cannot wait for.
+        const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'arn-dirty-'));
+        const ctx = { globalStorageUri: vscode.Uri.file(dir) };
+        const uri = await ensureQuickFile(ctx, MARS_LABEL, themeJson);
+        const onDisk = fs.readFileSync(uri.fsPath, 'utf8');
+        const doc = await vscode.workspace.openTextDocument(uri);
+        const pending = new vscode.WorkspaceEdit();
+        pending.insert(uri, new vscode.Position(0, 0), '/* pending */\n');
+        await vscode.workspace.applyEdit(pending);
+        assert.ok(doc.isDirty, 'precondition: the buffer carries unsaved edits');
+
+        try {
+            await __testing.saveThemeState(MARS_LABEL, themeJson, { quick: { 'ui.cursorLineGlow': 'yes' } });
+            await ensureQuickFile(ctx, MARS_LABEL, themeJson);
+            assert.equal(fs.readFileSync(uri.fsPath, 'utf8'), onDisk, 'the file under the dirty buffer stays as it was');
+        } finally {
+            await vscode.window.showTextDocument(doc);
+            await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+            await fs.promises.rm(dir, { recursive: true, force: true }).catch(() => { /* left to the OS temp cleanup */ });
+        }
     });
 
     it('ensureAdvancedUIFile creates advanced-ui-<label>.jsonc', async () => {
@@ -118,6 +152,14 @@ describe('File creation in globalStorageUri', () => {
         assert.ok('chat.linesAddedForeground' in payload.colors);
         assert.ok('chat.linesRemovedForeground' in payload.colors);
         assert.ok('chat.editedFileForeground' in payload.colors);
+    });
+
+    it('advanced-ui file uses one line ending throughout', async () => {
+        const ctx = { ...fakeCtx, extensionUri: vscode.Uri.file(REPO_ROOT) };
+        const uri = await ensureAdvancedUIFile(ctx, MARS_LABEL, themeJson);
+        const content = fs.readFileSync(uri.fsPath, 'utf8');
+        assert.ok(content.includes('"editor.background"'), 'precondition: the theme block was spliced in');
+        assert.equal(content.includes('\r'), false);
     });
 
     it('ensureAdvancedSyntaxFile creates advanced-syntax-<label>.jsonc', async () => {
@@ -150,7 +192,7 @@ describe('File creation in globalStorageUri', () => {
     // configuration. Replacing would silently drop the per-language rules
     // shipped by the theme as soon as the user adds a single rule of their
     // own (a TextMate italic-comment rule, for instance).
-    it('advanced-syntax merges (does NOT replace) themeJson.tokenColors with user textMateRules', async () => {
+    it('advanced-syntax shows the theme rules with the user rule in place, never twice', async () => {
         // Plant a representative user customisation: a single comment rule.
         const ed = vscode.workspace.getConfiguration('editor');
         const previous = ed.get('tokenColorCustomizations');
@@ -169,17 +211,19 @@ describe('File creation in globalStorageUri', () => {
             const payload = parseJsonc(fs.readFileSync(uri.fsPath, 'utf8'));
 
             const themeRuleCount = themeJson.tokenColors.length;
-            assert.ok(payload.tokenColors.length >= themeRuleCount,
-                `expected at least ${themeRuleCount} rules (theme defaults), got ${payload.tokenColors.length} — ` +
-                `the contract is: user textMateRules must be appended to theme.tokenColors, never replace them.`);
+            assert.ok(payload.tokenColors.length >= themeRuleCount && payload.tokenColors.length <= themeRuleCount + 1,
+                `expected the ${themeRuleCount} theme rules plus at most the user one, got ${payload.tokenColors.length}`);
 
-            // The user rule (italic comment) must be present too — by convention appended at the end.
-            const lastRule = payload.tokenColors[payload.tokenColors.length - 1];
-            const isOurs = Array.isArray(lastRule.scope)
-                && lastRule.scope.includes('comment')
-                && lastRule.settings && lastRule.settings.fontStyle === 'italic';
-            assert.ok(isOurs,
-                'the user italic rule should be merged in (typically at the end)');
+            const ours = payload.tokenColors.filter(r => Array.isArray(r.scope)
+                && r.scope.includes('comment')
+                && r.settings && r.settings.fontStyle === 'italic');
+            assert.equal(ours.length, 1, 'the user italic rule appears exactly once');
+
+            // Re-rendering must not grow the file: the old code appended the
+            // stored rules to the theme's on every regeneration.
+            fs.rmSync(uri.fsPath);
+            const again = parseJsonc(fs.readFileSync((await ensureAdvancedSyntaxFile(fakeCtx, MARS_LABEL, themeJson)).fsPath, 'utf8'));
+            assert.equal(again.tokenColors.length, payload.tokenColors.length);
         } finally {
             await ed.update('tokenColorCustomizations', previous, 1);
         }
