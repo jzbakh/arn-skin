@@ -21,6 +21,7 @@ const path = require('node:path');
 const os = require('node:os');
 const vscode = require('vscode');
 const { __testing } = require('../../extension');
+const { snapshotCustomizations, restoreCustomizations, clearCustomizations } = require('./customizations');
 
 const {
     applyQuick, applyAdvancedUI, applyAdvancedSyntax, resetTheme,
@@ -90,6 +91,10 @@ function ourColors() {
 function ourTokens() {
     return getTokenCustomizations()[`[${TEST_THEME_LABEL}]`] || {};
 }
+function ourSemantic() {
+    const all = vscode.workspace.getConfiguration('editor').get('semanticTokenColorCustomizations') || {};
+    return all[`[${TEST_THEME_LABEL}]`] || {};
+}
 
 describe('Apply pipeline — full integration', function () {
     this.timeout(15000); // Configuration writes can be slow on CI.
@@ -99,8 +104,7 @@ describe('Apply pipeline — full integration', function () {
     let themeJson;
     let themeBases;
     let originalTheme;
-    let originalColorCC;
-    let originalTokenCC;
+    let savedCustomizations;
 
     before(async () => {
         themeJson = parseJsonc(fs.readFileSync(TEST_THEME_FILE, 'utf8'));
@@ -108,10 +112,8 @@ describe('Apply pipeline — full integration', function () {
 
         // Snapshot the user's settings so we can restore them at the end.
         const wb = vscode.workspace.getConfiguration('workbench');
-        const ed = vscode.workspace.getConfiguration('editor');
         originalTheme = wb.get('colorTheme');
-        originalColorCC = wb.get('colorCustomizations');
-        originalTokenCC = ed.get('tokenColorCustomizations');
+        savedCustomizations = snapshotCustomizations();
 
         // Activate the ARN test theme so getActiveThemeData() picks it up.
         await wb.update('colorTheme', TEST_THEME_LABEL, vscode.ConfigurationTarget.Global);
@@ -119,10 +121,8 @@ describe('Apply pipeline — full integration', function () {
 
     after(async () => {
         const wb = vscode.workspace.getConfiguration('workbench');
-        const ed = vscode.workspace.getConfiguration('editor');
         await wb.update('colorTheme', originalTheme, vscode.ConfigurationTarget.Global);
-        await wb.update('colorCustomizations', originalColorCC, vscode.ConfigurationTarget.Global);
-        await ed.update('tokenColorCustomizations', originalTokenCC, vscode.ConfigurationTarget.Global);
+        await restoreCustomizations(savedCustomizations);
     });
 
     beforeEach(async () => {
@@ -132,10 +132,7 @@ describe('Apply pipeline — full integration', function () {
             globalStorageUri: vscode.Uri.file(tmpDir),
         };
         // Clean override state before each test so assertions are deterministic.
-        const wb = vscode.workspace.getConfiguration('workbench');
-        const ed = vscode.workspace.getConfiguration('editor');
-        await wb.update('colorCustomizations', undefined, vscode.ConfigurationTarget.Global);
-        await ed.update('tokenColorCustomizations', undefined, vscode.ConfigurationTarget.Global);
+        await clearCustomizations();
     });
 
     afterEach(async () => {
@@ -388,18 +385,17 @@ describe('Apply pipeline — full integration', function () {
     // ---------------------------------------------------------------------
 
     describe('applyQuick — surface ownership', () => {
-        it('does not touch tokenColorCustomizations entries set by Advanced Syntax', async () => {
+        it('does not touch the syntax entries set by Advanced Syntax', async () => {
             // Advanced Syntax sets a foreground (the user owns this surface).
             await applyAdvancedSyntax(fakeCtx, `{
                 "semanticTokenColors": { "keyword": { "foreground": "#AABBCC" } },
                 "tokenColors": []
             }`);
-            assert.equal(ourTokens().semanticTokenColors.keyword.foreground, '#AABBCC');
+            assert.equal(ourSemantic().rules.keyword.foreground, '#AABBCC');
 
-            // applyQuick must leave tokenColorCustomizations entirely alone.
             await applyQuick(fakeCtx, buildCss(themeBases, { bg: '#ABCDEF' }));
 
-            const kw = ourTokens().semanticTokenColors && ourTokens().semanticTokenColors.keyword;
+            const kw = ourSemantic().rules && ourSemantic().rules.keyword;
             assert.ok(kw, 'Advanced Syntax entry must survive an applyQuick call');
             assert.equal(kw.foreground, '#AABBCC',
                 'Advanced Syntax foreground must remain untouched by applyQuick');
@@ -474,7 +470,7 @@ describe('Apply pipeline — full integration', function () {
     // ---------------------------------------------------------------------
 
     describe('applyAdvancedSyntax', () => {
-        it('writes semanticTokenColors and tokenColors into editor.tokenColorCustomizations', async () => {
+        it('writes semantic rules where VS Code reads them, and TextMate rules beside the theme', async () => {
             const jsonc = `{
                 "semanticTokenColors": {
                     "keyword": { "foreground": "#AABBCC" }
@@ -485,8 +481,10 @@ describe('Apply pipeline — full integration', function () {
             }`;
             await applyAdvancedSyntax(fakeCtx, jsonc);
 
+            assert.deepEqual(ourSemantic().rules.keyword, { foreground: '#AABBCC' });
             const t = ourTokens();
-            assert.deepEqual(t.semanticTokenColors.keyword, { foreground: '#AABBCC' });
+            assert.equal(t.semanticTokenColors, undefined,
+                'editor.tokenColorCustomizations has no semanticTokenColors key: VS Code ignores it there');
             assert.ok(Array.isArray(t.textMateRules));
             const stringRule = t.textMateRules.find(r => r.scope === 'string');
             assert.ok(stringRule);
@@ -503,8 +501,7 @@ describe('Apply pipeline — full integration', function () {
                 "semanticTokenColors": { "keyword": { "foreground": "#AABBCC" } },
                 "tokenColors": []
             }`);
-            assert.ok(ourTokens().semanticTokenColors,
-                'precondition: tokens entry must be present');
+            assert.ok(ourSemantic().rules, 'precondition: semantic entry must be present');
 
             // Build the canonical "theme-default" payload (matches what
             // ensureAdvancedSyntaxFile would write on a fresh open).
@@ -523,6 +520,7 @@ describe('Apply pipeline — full integration', function () {
             assert.equal(tc[`[${TEST_THEME_LABEL}]`], undefined,
                 'entry must be cleared when both semantic and TextMate sections ' +
                 'match the theme — guards the close-without-save scenario');
+            assert.deepEqual(ourSemantic(), {}, 'the semantic entry must be cleared too');
         });
     });
 
@@ -542,7 +540,7 @@ describe('Apply pipeline — full integration', function () {
                 "tokenColors": []
             }`);
             assert.ok(ourColors()['editor.background']);
-            assert.ok(ourTokens().semanticTokenColors);
+            assert.ok(ourSemantic().rules);
 
             await resetTheme(fakeCtx, TEST_THEME_LABEL);
 
@@ -552,6 +550,7 @@ describe('Apply pipeline — full integration', function () {
                 'colorCustomizations entry for this theme must be deleted');
             assert.equal(tc[`[${TEST_THEME_LABEL}]`], undefined,
                 'tokenColorCustomizations entry for this theme must be deleted');
+            assert.deepEqual(ourSemantic(), {}, 'semanticTokenColorCustomizations entry must be deleted');
         });
 
         it('is a no-op when there is nothing to reset (does not throw)', async () => {
@@ -566,7 +565,7 @@ describe('Apply pipeline — full integration', function () {
                 "tokenColors": []
             }`);
             assert.ok(ourColors()['editor.background']);
-            assert.ok(ourTokens().semanticTokenColors);
+            assert.ok(ourSemantic().rules);
 
             await resetTheme(fakeCtx, TEST_THEME_LABEL);
             await assert.doesNotReject(resetTheme(fakeCtx, TEST_THEME_LABEL),
@@ -645,23 +644,18 @@ describe('Apply pipeline — covers all 7 ARN themes', function () {
     this.timeout(60000);
 
     let originalTheme;
-    let originalColorCC;
-    let originalTokenCC;
+    let savedCustomizations;
 
     before(() => {
         const wb = vscode.workspace.getConfiguration('workbench');
-        const ed = vscode.workspace.getConfiguration('editor');
         originalTheme = wb.get('colorTheme');
-        originalColorCC = wb.get('colorCustomizations');
-        originalTokenCC = ed.get('tokenColorCustomizations');
+        savedCustomizations = snapshotCustomizations();
     });
 
     after(async () => {
         const wb = vscode.workspace.getConfiguration('workbench');
-        const ed = vscode.workspace.getConfiguration('editor');
         await wb.update('colorTheme', originalTheme, vscode.ConfigurationTarget.Global);
-        await wb.update('colorCustomizations', originalColorCC, vscode.ConfigurationTarget.Global);
-        await ed.update('tokenColorCustomizations', originalTokenCC, vscode.ConfigurationTarget.Global);
+        await restoreCustomizations(savedCustomizations);
     });
 
     for (const { label, file } of ALL_THEMES) {
@@ -691,10 +685,7 @@ describe('Apply pipeline — covers all 7 ARN themes', function () {
                     globalStorageUri: vscode.Uri.file(tmpDir),
                 };
                 // Clean override state so each test starts from a known baseline.
-                const wb = vscode.workspace.getConfiguration('workbench');
-                const ed = vscode.workspace.getConfiguration('editor');
-                await wb.update('colorCustomizations', undefined, vscode.ConfigurationTarget.Global);
-                await ed.update('tokenColorCustomizations', undefined, vscode.ConfigurationTarget.Global);
+                await clearCustomizations();
             });
 
             afterEach(async () => {

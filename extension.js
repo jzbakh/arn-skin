@@ -1166,6 +1166,7 @@ async function ensureAdvancedSyntaxFile(context, themeLabel, themeJson) {
 
     const ed = vscode.workspace.getConfiguration('editor');
     const userTokens = (ed.get('tokenColorCustomizations') || {})[`[${themeLabel}]`] || {};
+    const userSemantic = (ed.get('semanticTokenColorCustomizations') || {})[`[${themeLabel}]`] || {};
 
     // Force every semantic token to the `{ foreground: "…" }` object form.
     // The JSON color picker fires reliably on object-shaped values whose
@@ -1175,7 +1176,11 @@ async function ensureAdvancedSyntaxFile(context, themeLabel, themeJson) {
     // Pair this with the schema fix that drops `anyOf` from each semantic
     // entry: together they put a working color swatch in the gutter for
     // every entry — exactly what the user expects when editing this file.
-    const rawSemantic = { ...(themeJson.semanticTokenColors || {}), ...(userTokens.semanticTokenColors || {}) };
+    const rawSemantic = {
+        ...(themeJson.semanticTokenColors || {}),
+        ...(userTokens.semanticTokenColors || {}),
+        ...(userSemantic.rules || {}),
+    };
     const semanticTokenColors = {};
     for (const [k, v] of Object.entries(rawSemantic)) {
         if (typeof v === 'string') semanticTokenColors[k] = { foreground: v };
@@ -1443,21 +1448,32 @@ async function applyAdvancedSyntax(context, jsonText) {
         deepEqual(semanticTokenColors, themeSem) &&
         deepEqual(tokenColors, themeTokenColors);
 
+    // TextMate rules go to editor.tokenColorCustomizations, semantic rules to
+    // editor.semanticTokenColorCustomizations: VS Code ignores a
+    // semanticTokenColors key in the former, where earlier versions wrote it.
+    // Keys the user added to either entry are kept.
+    const sel = `[${themeLabel}]`;
     const ed = vscode.workspace.getConfiguration('editor');
     const existingTC = { ...(ed.get('tokenColorCustomizations') || {}) };
+    const existingSC = { ...(ed.get('semanticTokenColorCustomizations') || {}) };
+    const tcEntry = { ...(existingTC[sel] || {}) };
+    const scEntry = { ...(existingSC[sel] || {}) };
+    delete tcEntry.semanticTokenColors;
     if (matchesTheme) {
-        delete existingTC[`[${themeLabel}]`];
+        delete tcEntry.textMateRules;
+        delete scEntry.rules;
     } else {
-        // Preserve any non-syntax keys (defensive — normally there are none)
-        const prev = existingTC[`[${themeLabel}]`] || {};
-        existingTC[`[${themeLabel}]`] = {
-            ...prev,
-            semanticTokenColors,
-            textMateRules: tokenColors,
-        };
+        tcEntry.textMateRules = tokenColors;
+        scEntry.rules = semanticTokenColors;
     }
-    const finalTC = Object.keys(existingTC).length ? existingTC : undefined;
-    await ed.update('tokenColorCustomizations', finalTC, vscode.ConfigurationTarget.Global);
+    if (Object.keys(tcEntry).length) existingTC[sel] = tcEntry;
+    else delete existingTC[sel];
+    if (Object.keys(scEntry).length) existingSC[sel] = scEntry;
+    else delete existingSC[sel];
+    await ed.update('tokenColorCustomizations',
+        Object.keys(existingTC).length ? existingTC : undefined, vscode.ConfigurationTarget.Global);
+    await ed.update('semanticTokenColorCustomizations',
+        Object.keys(existingSC).length ? existingSC : undefined, vscode.ConfigurationTarget.Global);
 }
 
 // =========================================================================
@@ -1486,6 +1502,11 @@ async function resetTheme(context, themeLabel, skipReapplySet) {
     const newTC = Object.keys(tc).length ? tc : undefined;
     await ed.update('tokenColorCustomizations', newTC, vscode.ConfigurationTarget.Global);
 
+    const sc = { ...(ed.get('semanticTokenColorCustomizations') || {}) };
+    delete sc[`[${themeLabel}]`];
+    const newSC = Object.keys(sc).length ? sc : undefined;
+    await ed.update('semanticTokenColorCustomizations', newSC, vscode.ConfigurationTarget.Global);
+
     // Delete associated files (best-effort, ignore if missing)
     const filesToDelete = [
         quickUriFor(context, themeLabel),
@@ -1497,6 +1518,13 @@ async function resetTheme(context, themeLabel, skipReapplySet) {
             await vscode.workspace.fs.delete(uri);
         } catch { /* already gone */ }
     }
+}
+
+function hasThemeCustomization(themeLabel) {
+    const sel = `[${themeLabel}]`;
+    return !!(vscode.workspace.getConfiguration('workbench').get('colorCustomizations') || {})[sel]
+        || !!(vscode.workspace.getConfiguration('editor').get('tokenColorCustomizations') || {})[sel]
+        || !!(vscode.workspace.getConfiguration('editor').get('semanticTokenColorCustomizations') || {})[sel];
 }
 
 // =========================================================================
@@ -1583,9 +1611,7 @@ function activate(context) {
     const updateStatusBar = () => {
         const theme = vscode.workspace.getConfiguration('workbench').get('colorTheme');
         if (theme && theme.startsWith('Arn')) {
-            const cc = vscode.workspace.getConfiguration('workbench').get('colorCustomizations') || {};
-            const tc = vscode.workspace.getConfiguration('editor').get('tokenColorCustomizations') || {};
-            if (cc[`[${theme}]`] || tc[`[${theme}]`]) {
+            if (hasThemeCustomization(theme)) {
                 statusBarItem.text = '$(paintcan) Skin (Customized)';
                 statusBarItem.tooltip = 'Customized theme. Click to manage.';
             } else {
@@ -1603,7 +1629,8 @@ function activate(context) {
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('workbench.colorTheme') ||
                 e.affectsConfiguration('workbench.colorCustomizations') ||
-                e.affectsConfiguration('editor.tokenColorCustomizations')) {
+                e.affectsConfiguration('editor.tokenColorCustomizations') ||
+                e.affectsConfiguration('editor.semanticTokenColorCustomizations')) {
                 updateStatusBar();
             }
         })
@@ -1682,9 +1709,7 @@ function activate(context) {
             if (!data) return;
             const { themeLabel, themeJson, packageJson } = data;
 
-            const cc = vscode.workspace.getConfiguration('workbench').get('colorCustomizations') || {};
-            const tc = vscode.workspace.getConfiguration('editor').get('tokenColorCustomizations') || {};
-            const hasCustomization = !!cc[`[${themeLabel}]`] || !!tc[`[${themeLabel}]`];
+            const hasCustomization = hasThemeCustomization(themeLabel);
 
             const options = [
                 {
