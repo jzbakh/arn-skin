@@ -297,11 +297,66 @@ describe('Quick and Advanced layers — user transitions', function () {
         }
     });
 
+    // The underline and its quick fix, read back from VS Code as the user gets them.
+    const ourMarks = (doc) => vscode.languages.getDiagnostics(doc.uri).filter(d => d.source === 'ARN-Skin');
+    async function restoreWithQuickFix(editor, title) {
+        const [mark] = ourMarks(editor.document);
+        const actions = await vscode.commands.executeCommand('vscode.executeCodeActionProvider', editor.document.uri, mark.range);
+        const action = actions.find(a => a.title === title);
+        assert.ok(action, `quick fix "${title}" among ${JSON.stringify(actions.map(a => a.title))}`);
+        await vscode.workspace.applyEdit(action.edit);
+        await settle();
+    }
+
+    it('underlines a rejected Quick colour and puts the previous one back in one action', async () => {
+        const quick = await openMode('quick');
+        await type(quick, ACCENT('#00AAFF'));
+        await type(quick, (text) => text.replace(/(--Accentuation:\s*)#[0-9A-Fa-f]+/, '$1#00AAF'));
+
+        const marks = ourMarks(quick.document);
+        assert.equal(marks.length, 1);
+        assert.equal(quick.document.getText(marks[0].range), '#00AAF');
+        assert.match(marks[0].message, /--Accentuation is not a valid color \(#00AAF\); the previous color \(#00AAFF\) is kept\./);
+
+        await restoreWithQuickFix(quick, 'Restore the previous color (#00AAFF)');
+        assert.match(quick.document.getText(), /--Accentuation:\s*#00AAFF;/);
+        assert.deepEqual(ourMarks(quick.document), []);
+    });
+
+    it('keeps the previous Advanced UI colour, underlines the rejected one and offers it back', async () => {
+        const advanced = await openMode('advanced-ui');
+        await type(advanced, MINIMAP);
+        await type(advanced, KEY('minimap.background', '#FF00F'));
+
+        assert.equal(colorsOf()['minimap.background'], '#FF00FF', 'the invalid value never reaches settings');
+        const [mark] = ourMarks(advanced.document);
+        assert.equal(advanced.document.getText(mark.range), '#FF00F');
+
+        await restoreWithQuickFix(advanced, 'Restore the previous color (#FF00FF)');
+        assert.match(advanced.document.getText(), /"minimap\.background"\s*:\s*"#FF00FF"/);
+        assert.deepEqual(ourMarks(advanced.document), []);
+    });
+
+    it('keeps the previous syntax colour, underlines the rejected one and offers it back', async () => {
+        const syntax = await openMode('advanced-syntax');
+        await type(syntax, FOREGROUND_AFTER('"scope"', '#12'));
+
+        assert.equal(entryOf('editor', 'tokenColorCustomizations'), undefined, 'nothing is written for an invalid colour');
+        const [mark] = ourMarks(syntax.document);
+        assert.equal(syntax.document.getText(mark.range), '#12');
+
+        const kept = /previous color \((#[0-9A-F]+)\)/.exec(mark.message)[1];
+        await restoreWithQuickFix(syntax, `Restore the previous color (${kept})`);
+        assert.deepEqual(ourMarks(syntax.document), []);
+        assert.equal(entryOf('editor', 'tokenColorCustomizations'), undefined, 'the restored colour is the theme\'s own');
+    });
+
     it('reads a colour the picker wrote in another notation', async () => {
         const quick = await openMode('quick');
         await type(quick, (text) => text.replace(/(--Accentuation:\s*)#[0-9A-Fa-f]+/, '$1oklch(52.887% 0.10286 32.457)'));
 
         assert.ok(__testing.sameColor(colorsOf()['button.background'], '#9E5344'));
+        assert.deepEqual(ourMarks(quick.document), []);
     });
 
     it('writes one key for one Advanced tweak', async () => {

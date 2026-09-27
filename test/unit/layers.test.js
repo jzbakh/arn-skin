@@ -78,7 +78,7 @@ describe('Quick layer', () => {
         const previous = { ...defaults, 'ui.accentPrimary': '#9e5344' };
         const { quick, rejected } = t.resolveQuickInput(css({ ...previous, 'ui.accentPrimary': '#00AAF' }), previous);
         assert.equal(quick['ui.accentPrimary'], '#9e5344');
-        assert.deepEqual(rejected, [{ cssVar: '--Accentuation', value: '#00AAF', kept: '#9E5344' }]);
+        assert.deepEqual(rejected, [{ name: '--Accentuation', value: '#00AAF', kept: '#9E5344', at: { kind: 'quick', cssVar: 'Accentuation' } }]);
     });
 
     it('reports a colour whose line is gone or left empty', () => {
@@ -86,7 +86,7 @@ describe('Quick layer', () => {
             .replace(/\s*--Accentuation:[^;]*;/, '')
             .replace(/(--Borders:)[^;]*;/, '$1 ;');
         const { rejected } = t.resolveQuickInput(text, defaults);
-        assert.deepEqual(rejected.map(r => [r.cssVar, r.value]), [['--Accentuation', null], ['--Borders', null]]);
+        assert.deepEqual(rejected.map(r => [r.name, r.value]), [['--Accentuation', null], ['--Borders', null]]);
     });
 
     it('finds a broken colour whatever the case of its variable name', () => {
@@ -107,7 +107,7 @@ describe('Quick layer', () => {
 });
 
 describe('Rejected colour notices', () => {
-    const broken = (value) => ({ cssVar: '--Accentuation', value: value });
+    const broken = (value) => ({ name: '--Accentuation', value });
 
     it('announces a rejected value once, then waits 15 s before the next notice', () => {
         let plan = t.planNotice(undefined, [broken('#0')], 0);
@@ -129,15 +129,17 @@ describe('Rejected colour notices', () => {
 
     it('calls a value erased with its semicolon missing, not the next line', () => {
         const view = ':root {\n    --Accentuation:\n    --Secondary-Background:  #062F40;\n}\n';
-        const [r] = t.resolveQuickInput(view, t.quickDefaults(mars)).rejected.filter(x => x.cssVar === '--Accentuation');
+        const [r] = t.resolveQuickInput(view, t.quickDefaults(mars)).rejected.filter(x => x.name === '--Accentuation');
         assert.equal(r.value, null);
     });
 
     it('keeps the toast to one line, the kept colour first', () => {
-        assert.equal(t.summarizeRejected({ cssVar: '--Main-Text', value: '#e0hHs', kept: '#E0DEF4' }),
+        assert.equal(t.summarizeRejected({ name: '--Main-Text', value: '#e0hHs', kept: '#E0DEF4' }),
             '--Main-Text stays #E0DEF4 (#e0hHs is invalid)');
-        assert.equal(t.summarizeRejected({ cssVar: '--Borders', value: null, kept: '#000000' }),
+        assert.equal(t.summarizeRejected({ name: '--Borders', value: null, kept: '#000000' }),
             '--Borders is missing, stays #000000');
+        assert.equal(t.summarizeRejected({ name: 'brand.new', value: 'red', kept: undefined }),
+            'brand.new ignored (red is invalid)');
     });
 });
 

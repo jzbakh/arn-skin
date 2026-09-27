@@ -955,7 +955,12 @@ function resolveQuickInput(cssText, previous) {
         }
         const written = new RegExp(`--${cssVar}:[ \\t]*([^;\\n]*)`, 'i').exec(cssText);
         const value = written && written[1].trim();
-        rejected.push({ cssVar: `--${cssVar}`, value: value || null, kept: colorUtils.normalizeHex(previous[key]) });
+        rejected.push({
+            name: `--${cssVar}`,
+            value: value || null,
+            kept: colorUtils.normalizeHex(previous[key]),
+            at: { kind: 'quick', cssVar },
+        });
     }
     for (const [key, cssVar] of QUICK_TOGGLES) {
         if (new RegExp(`--${cssVar}:\\s*(yes|no|inherit)\\b`, 'i').test(cssText)) quick[key] = parsed[key];
@@ -1042,26 +1047,143 @@ function diffTextMate(rules, themeRules) {
     return out;
 }
 
+const ruleIdentity = (rule) => JSON.stringify([rule.name ?? null, canonicalStyle(rule.scope ?? null)]);
+
 // An override takes the place of the theme rule it was edited from, so the
 // view reads like the theme and diffs back to the same overrides.
 function renderTextMateView(themeRules, overrides) {
     const base = themeRules || [];
     const rules = [...base];
-    const identity = (rule) => JSON.stringify([rule.name ?? null, canonicalStyle(rule.scope ?? null)]);
     // Positions of the theme rules not yet replaced, per identity, in order:
     // one pass over each list, however many rules a theme or the user has.
     const free = new Map();
     base.forEach((rule, i) => {
-        const id = identity(rule);
+        const id = ruleIdentity(rule);
         if (!free.has(id)) free.set(id, []);
         free.get(id).push(i);
     });
     for (const rule of overrides || []) {
-        const slots = free.get(identity(rule));
+        const slots = free.get(ruleIdentity(rule));
         if (slots && slots.length) rules[slots.shift()] = rule;
         else rules.push(rule);
     }
     return rules;
+}
+
+// A colour that is not one keeps the value the view showed before, in every
+// mode, instead of reaching settings. Each rejection says what was written,
+// what is kept and where to find it.
+const COLOR_PROPS = ['foreground', 'background'];
+const isHexColor = (value) => typeof value === 'string' && HEX_COLOR_RE.test(value);
+const keptColor = (value) => (value === undefined ? undefined : colorUtils.normalizeHex(value));
+
+function keepPreviousUiColors(colors, previous) {
+    const accepted = {};
+    const rejected = [];
+    for (const [key, value] of Object.entries(colors || {})) {
+        if (isHexColor(value)) {
+            accepted[key] = value;
+            continue;
+        }
+        if (previous[key] !== undefined) accepted[key] = previous[key];
+        rejected.push({
+            name: key,
+            value: typeof value === 'string' ? value : JSON.stringify(value),
+            kept: keptColor(previous[key]),
+            at: { kind: 'ui', key },
+        });
+    }
+    return { accepted, rejected };
+}
+
+function keepPreviousSyntaxColors(payload, previousSemantic, previousRules) {
+    const rejected = [];
+    const semantic = {};
+    for (const [selector, style] of Object.entries(normalizeSemantic(payload.semanticTokenColors))) {
+        const next = { ...style };
+        for (const prop of COLOR_PROPS) {
+            if (next[prop] === undefined || isHexColor(next[prop])) continue;
+            const kept = (previousSemantic[selector] || {})[prop];
+            rejected.push({ name: `${selector} ${prop}`, value: String(next[prop]), kept: keptColor(kept), at: { kind: 'semantic', selector, prop } });
+            if (kept === undefined) delete next[prop];
+            else next[prop] = kept;
+        }
+        semantic[selector] = next;
+    }
+    const rules = (Array.isArray(payload.tokenColors) ? payload.tokenColors : []).map((rule, index) => {
+        if (!rule || typeof rule !== 'object' || !rule.settings) return rule;
+        const settings = { ...rule.settings };
+        for (const prop of COLOR_PROPS) {
+            if (settings[prop] === undefined || isHexColor(settings[prop])) continue;
+            const before = (previousRules || []).find(r => r && r.settings && ruleIdentity(r) === ruleIdentity(rule));
+            const kept = before && before.settings[prop];
+            const label = rule.name || [].concat(rule.scope || []).join(', ') || `rule ${index + 1}`;
+            rejected.push({ name: `${label} ${prop}`, value: String(settings[prop]), kept: keptColor(kept), at: { kind: 'textmate', index, prop } });
+            if (kept === undefined) delete settings[prop];
+            else settings[prop] = kept;
+        }
+        return { ...rule, settings };
+    });
+    return { semantic, rules, rejected };
+}
+
+// Two lengths of the same news: the full sentence on hover, and a line
+// short enough for a notification toast.
+function describeRejected(r) {
+    if (r.value === null) return `${r.name} is missing; the previous color (${r.kept}) is kept.`;
+    if (r.kept === undefined) return `${r.name} is not a valid color (${r.value}) and is ignored.`;
+    return `${r.name} is not a valid color (${r.value}); the previous color (${r.kept}) is kept.`;
+}
+
+function summarizeRejected(r) {
+    if (r.value === null) return `${r.name} is missing, stays ${r.kept}`;
+    if (r.kept === undefined) return `${r.name} ignored (${r.value} is invalid)`;
+    return `${r.name} stays ${r.kept} (${r.value} is invalid)`;
+}
+
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Offsets of a rejected value in the editing file, and the edit that puts the
+// kept colour back. Null when the text no longer holds it where expected.
+function locateRejected(text, r) {
+    const at = r.at || {};
+    const inner = (from, pattern) => {
+        const m = pattern.exec(text.slice(from));
+        if (!m) return null;
+        const start = from + m.index + m[0].length;
+        const end = text.indexOf('"', start);
+        return end === -1 ? null : { start, end, fix: r.kept === undefined ? null : { start, end, newText: r.kept } };
+    };
+    if (at.kind === 'quick') {
+        const m = new RegExp(`--${at.cssVar}:[ \\t]*`, 'i').exec(text);
+        if (!m) {
+            const root = text.indexOf(':root');
+            const brace = text.indexOf('{', root);
+            if (root === -1 || brace === -1) return null;
+            return { start: root, end: root + 5, fix: { start: brace + 1, end: brace + 1, newText: `\n    --${at.cssVar}: ${r.kept};` } };
+        }
+        const start = m.index + m[0].length;
+        const raw = /^[^;\n]*/.exec(text.slice(start))[0].replace(/\s+$/, '');
+        if (!raw) return { start: m.index, end: m.index + at.cssVar.length + 2, fix: { start, end: start, newText: r.kept } };
+        return { start, end: start + raw.length, fix: { start, end: start + raw.length, newText: r.kept } };
+    }
+    if (at.kind === 'ui') return inner(0, new RegExp(`"${escapeRegExp(at.key)}"\\s*:\\s*"`));
+    if (at.kind === 'semantic') {
+        const from = Math.max(0, text.indexOf('"semanticTokenColors"'));
+        const sel = escapeRegExp(at.selector);
+        return inner(from, new RegExp(`"${sel}"\\s*:\\s*\\{[^{}]*?"${at.prop}"\\s*:\\s*"`))
+            || (at.prop === 'foreground' ? inner(from, new RegExp(`"${sel}"\\s*:\\s*"`)) : null);
+    }
+    if (at.kind === 'textmate') {
+        const from = text.indexOf('"tokenColors"');
+        if (from === -1) return null;
+        const settings = /"settings"\s*:\s*\{[^{}]*\}/g;
+        settings.lastIndex = from;
+        let m;
+        for (let i = 0; (m = settings.exec(text)) && i < at.index; i++) { /* skip to the rule */ }
+        return m ? inner(m.index, new RegExp(`"${at.prop}"\\s*:\\s*"`)) : null;
+    }
+    return null;
 }
 
 function compactState(state) {
@@ -1658,10 +1780,11 @@ async function resolveTheme(context, themeLabel) {
     return themeLabel ? getThemeData(context, themeLabel) : getActiveThemeData(context);
 }
 
-// Returns the colours it rejected; each kept its previous value.
+// The apply* functions return the colours they rejected, each keeping its
+// previous value, or null when they could not read the file at all.
 async function applyQuick(context, cssText, themeLabel) {
     const theme = await resolveTheme(context, themeLabel);
-    if (!theme) return [];
+    if (!theme) return null;
     const { themeJson } = theme;
     const state = await loadThemeState(context, theme.themeLabel, themeJson);
 
@@ -1700,7 +1823,7 @@ function deepEqual(a, b) {
 
 async function applyAdvancedUI(context, jsonText, themeLabel) {
     const theme = await resolveTheme(context, themeLabel);
-    if (!theme) return;
+    if (!theme) return null;
     const { themeJson } = theme;
 
     let payload;
@@ -1708,23 +1831,22 @@ async function applyAdvancedUI(context, jsonText, themeLabel) {
         payload = parseJsonc(jsonText);
     } catch (err) {
         console.warn('[ARN] Advanced UI JSONC parse error:', err.message);
-        return;
+        return null;
     }
-    if (!payload || typeof payload !== 'object') return;
+    if (!payload || typeof payload !== 'object') return null;
     const colors = payload.colors && typeof payload.colors === 'object' && !Array.isArray(payload.colors)
         ? payload.colors : {};
 
     const state = await loadThemeState(context, theme.themeLabel, themeJson);
-    const derived = deriveQuickColors(expandQuick(state.quick, themeJson), themeJson);
-    await saveThemeState(theme.themeLabel, themeJson, {
-        ...state,
-        ui: diffColors(colors, { ...(themeJson.colors || {}), ...derived }),
-    });
+    const baseline = { ...(themeJson.colors || {}), ...deriveQuickColors(expandQuick(state.quick, themeJson), themeJson) };
+    const { accepted, rejected } = keepPreviousUiColors(colors, { ...baseline, ...(state.ui || {}) });
+    await saveThemeState(theme.themeLabel, themeJson, { ...state, ui: diffColors(accepted, baseline) });
+    return rejected;
 }
 
 async function applyAdvancedSyntax(context, jsonText, themeLabel) {
     const theme = await resolveTheme(context, themeLabel);
-    if (!theme) return;
+    if (!theme) return null;
     const { themeJson } = theme;
 
     let payload;
@@ -1732,19 +1854,23 @@ async function applyAdvancedSyntax(context, jsonText, themeLabel) {
         payload = parseJsonc(jsonText);
     } catch (err) {
         console.warn('[ARN] Advanced Syntax JSONC parse error:', err.message);
-        return;
+        return null;
     }
-    if (!payload || typeof payload !== 'object') return;
+    if (!payload || typeof payload !== 'object') return null;
 
     const themeRules = themeJson.tokenColors || [];
-    const edited = diffTextMate(Array.isArray(payload.tokenColors) ? payload.tokenColors : [], themeRules);
     const state = await loadThemeState(context, theme.themeLabel, themeJson);
+    const { semantic, rules, rejected } = keepPreviousSyntaxColors(payload,
+        { ...normalizeSemantic(themeJson.semanticTokenColors), ...(state.semantic || {}) },
+        renderTextMateView(themeRules, state.textMate));
+    const edited = diffTextMate(rules, themeRules);
     await saveThemeState(theme.themeLabel, themeJson, {
         ...state,
-        semantic: diffSemantic(payload.semanticTokenColors, themeJson.semanticTokenColors),
+        semantic: diffSemantic(semantic, themeJson.semanticTokenColors),
         // Canonical order, so re-applying an unedited view is a no-op.
         textMate: diffTextMate(renderTextMateView(themeRules, edited), themeRules),
     });
+    return rejected;
 }
 
 // =========================================================================
@@ -1822,19 +1948,13 @@ async function getThemeData(context, themeLabel) {
     return { themeLabel, themeJson, packageJson };
 }
 
-// One line, short enough for a notification toast: the kept colour first.
-function summarizeRejected(r) {
-    if (r.value === null) return `${r.cssVar} is missing, stays ${r.kept}`;
-    return `${r.cssVar} stays ${r.kept} (${r.value} is invalid)`;
-}
-
 const NOTICE_COOLDOWN_MS = 15000;
 
 // Which rejections a notice announces: each value once, and at most one notice
 // per file every 15 s, so a colour typed letter by letter with long pauses does
 // not raise one per letter. The file itself always shows the current state.
 function planNotice(previous, rejected, now) {
-    const id = (r) => `${r.cssVar}=${r.value}`;
+    const id = (r) => `${r.name}=${r.value}`;
     const seen = previous ? previous.seen : new Set();
     const lastAt = previous ? previous.at : -Infinity;
     const fresh = rejected.filter(r => !seen.has(id(r)));
@@ -1901,6 +2021,58 @@ function activate(context) {
         vscode.window.showWarningMessage(`ARN-Skin: ${summarizeRejected(announce[0])}${more}`);
     };
 
+    // The same rejections, underlined where they are written, each with a
+    // quick fix that puts the kept colour back.
+    const diagnostics = vscode.languages.createDiagnosticCollection('arn-skin');
+    context.subscriptions.push(diagnostics);
+    const quickFixes = new Map();
+    const markRejected = (doc, rejected) => {
+        const text = doc.getText();
+        const marks = [];
+        for (const r of rejected) {
+            const spot = locateRejected(text, r);
+            if (!spot) continue;
+            const diagnostic = new vscode.Diagnostic(
+                new vscode.Range(doc.positionAt(spot.start), doc.positionAt(spot.end)),
+                describeRejected(r), vscode.DiagnosticSeverity.Warning);
+            diagnostic.source = 'ARN-Skin';
+            const fix = spot.fix && {
+                title: r.value === null ? `Restore ${r.name}: ${r.kept}` : `Restore the previous color (${r.kept})`,
+                range: new vscode.Range(doc.positionAt(spot.fix.start), doc.positionAt(spot.fix.end)),
+                newText: spot.fix.newText,
+            };
+            marks.push({ diagnostic, fix });
+        }
+        diagnostics.set(doc.uri, marks.map(m => m.diagnostic));
+        quickFixes.set(doc.uri.toString(), marks);
+    };
+    const clearMarks = (uri) => {
+        diagnostics.delete(uri);
+        quickFixes.delete(uri.toString());
+    };
+    context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider(
+            { pattern: new vscode.RelativePattern(context.globalStorageUri, '*') },
+            {
+                provideCodeActions(doc, range, ctx) {
+                    const marks = quickFixes.get(doc.uri.toString()) || [];
+                    return marks
+                        .filter(m => m.fix && ctx.diagnostics.some(d =>
+                            d.source === 'ARN-Skin' && d.range.isEqual(m.diagnostic.range) && d.message === m.diagnostic.message))
+                        .map(m => {
+                            const action = new vscode.CodeAction(m.fix.title, vscode.CodeActionKind.QuickFix);
+                            action.edit = new vscode.WorkspaceEdit();
+                            action.edit.replace(doc.uri, m.fix.range, m.fix.newText);
+                            action.diagnostics = [m.diagnostic];
+                            action.isPreferred = true;
+                            return action;
+                        });
+                },
+            },
+            { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }),
+        vscode.workspace.onDidCloseTextDocument(doc => clearMarks(doc.uri)),
+    );
+
     const updateStatusBar = () => {
         const theme = vscode.workspace.getConfiguration('workbench').get('colorTheme');
         if (theme && theme.startsWith('Arn')) {
@@ -1929,14 +2101,11 @@ function activate(context) {
         })
     );
 
-    const applyByMode = async (mode, text, themeLabel, fileKey) => {
-        if (mode === 'quick') {
-            reportRejected(fileKey, await applyQuick(context, text, themeLabel));
-        } else if (mode === 'advanced-ui') {
-            await applyAdvancedUI(context, text, themeLabel);
-        } else if (mode === 'advanced-syntax') {
-            await applyAdvancedSyntax(context, text, themeLabel);
-        }
+    const applyByMode = async (mode, text, themeLabel) => {
+        if (mode === 'quick') return applyQuick(context, text, themeLabel);
+        if (mode === 'advanced-ui') return applyAdvancedUI(context, text, themeLabel);
+        if (mode === 'advanced-syntax') return applyAdvancedSyntax(context, text, themeLabel);
+        return null;
     };
 
     const applyDocument = async (doc, mode) => {
@@ -1958,7 +2127,10 @@ function activate(context) {
             const theme = await getThemeData(context, themeLabel);
             if (theme) editSnapshots.set(themeLabel, await loadThemeState(context, themeLabel, theme.themeJson));
         }
-        await applyByMode(mode, doc.getText(), themeLabel, doc.uri.toString());
+        const rejected = await applyByMode(mode, doc.getText(), themeLabel);
+        if (!rejected) return;
+        reportRejected(doc.uri.toString(), rejected);
+        markRejected(doc, rejected);
     };
 
     const pendingApplies = new Map();
@@ -2016,6 +2188,7 @@ function activate(context) {
                 // Read once the last tab is gone: a file open in two groups
                 // closes twice, and the second close is ours too.
                 const ours = skipReapplyUris.delete(key);
+                clearMarks(uri);
                 // A keystroke still waiting belongs to the edits being discarded.
                 const pending = pendingApplies.get(key);
                 if (pending && !ours) {
@@ -2033,7 +2206,8 @@ function activate(context) {
                         if (theme) await saveThemeState(themeLabel, theme.themeJson, snapshot);
                     } else if (revertFromDisk.delete(key)) {
                         const text = await readTextIfExists(uri);
-                        if (text !== null) await applyByMode(mode, text, themeLabel, key);
+                        const rejected = text === null ? null : await applyByMode(mode, text, themeLabel);
+                        if (rejected) reportRejected(key, rejected);
                     }
                 }).catch(reportApplyError);
             }
@@ -2216,8 +2390,12 @@ module.exports.__testing = {
     generateQuickTheme,
     parseQuickCss,
     planNotice,
-    summarizeRejected,
     cssColorToHex,
+    keepPreviousUiColors,
+    keepPreviousSyntaxColors,
+    describeRejected,
+    summarizeRejected,
+    locateRejected,
     buildQuickCssContent,
     sanitizeLabel,
     planetOf,
