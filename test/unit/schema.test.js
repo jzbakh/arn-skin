@@ -107,7 +107,7 @@ describe('schemas — colors.properties coverage', () => {
         const props = schema.properties.colors.properties;
         for (const [k, v] of Object.entries(props)) {
             assert.equal(v.type, 'string', `${k}.type must be "string"`);
-            assert.ok(v.pattern, `${k}.pattern must be set`);
+            assert.equal(v.format, 'color-hex', `${k}.format must be "color-hex"`);
         }
     });
 
@@ -180,31 +180,17 @@ describe('schemas — tokenColors items shape', () => {
     });
 });
 
-describe('schemas — hex pattern correctness', () => {
-    let schema;
-    before(() => { schema = loadSchema(); });
-
-    // Build a tiny pattern matcher to test sample values against the schema's regex.
-    function patternFor(prop) {
-        return new RegExp(prop.pattern);
-    }
-
-    it('accepts canonical hex variants (#RGB / #RGBA / #RRGGBB / #RRGGBBAA)', () => {
-        const props = schema.properties.colors.properties;
-        const sample = props['chat.linesAddedForeground'] || Object.values(props)[0];
-        const re = patternFor(sample);
-        for (const valid of ['#fff', '#ffff', '#ffffff', '#ffffffff', '#ABCDEF', '#ABCDEF00']) {
-            assert.ok(re.test(valid), `pattern should accept ${valid}`);
-        }
-    });
-
-    it('rejects clearly invalid hex strings', () => {
-        const props = schema.properties.colors.properties;
-        const sample = props['chat.linesAddedForeground'] || Object.values(props)[0];
-        const re = patternFor(sample);
-        for (const bad of ['fff', '#ff', '#fffff', '#fffffff', '#GGG', 'red', '']) {
-            assert.equal(re.test(bad), false, `pattern should reject ${JSON.stringify(bad)}`);
-        }
+describe('schemas — one message per invalid colour', () => {
+    // format: "color-hex" already rejects a bad value with a readable message;
+    // a pattern next to it repeats the error as a raw regex.
+    it('no colour property adds a pattern to its format', () => {
+        const offenders = [];
+        (function walk(node, where) {
+            if (!node || typeof node !== 'object') return;
+            if (node.format === 'color-hex' && 'pattern' in node) offenders.push(where);
+            for (const [k, v] of Object.entries(node)) walk(v, `${where}.${k}`);
+        })(loadSchema(), 'schema');
+        assert.deepEqual(offenders, []);
     });
 });
 
