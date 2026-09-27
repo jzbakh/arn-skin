@@ -67,18 +67,31 @@ describe('Quick layer', () => {
     });
 
     it('reads a complete Quick file', () => {
-        const { quick, missing } = t.resolveQuickInput(
+        const { quick, rejected } = t.resolveQuickInput(
             css({ ...defaults, 'ui.accentPrimary': '#00aaff', 'ui.cursorLineGlow': 'YES' }), defaults);
         assert.equal(quick['ui.accentPrimary'], '#00AAFF');
         assert.equal(quick['ui.cursorLineGlow'], 'yes');
-        assert.deepEqual(missing, []);
+        assert.deepEqual(rejected, []);
     });
 
-    it('keeps the previous value of a half-typed colour and reports it', () => {
-        const previous = { ...defaults, 'ui.accentPrimary': '#00AAFF' };
-        const { quick, missing } = t.resolveQuickInput(css({ ...previous, 'ui.accentPrimary': '#00AAF' }), previous);
-        assert.equal(quick['ui.accentPrimary'], '#00AAFF');
-        assert.deepEqual(missing, ['ui.accentPrimary']);
+    it('keeps the previous value of a half-typed colour and reports what was written', () => {
+        const previous = { ...defaults, 'ui.accentPrimary': '#9e5344' };
+        const { quick, rejected } = t.resolveQuickInput(css({ ...previous, 'ui.accentPrimary': '#00AAF' }), previous);
+        assert.equal(quick['ui.accentPrimary'], '#9e5344');
+        assert.deepEqual(rejected, [{ cssVar: '--Accentuation', value: '#00AAF', kept: '#9E5344' }]);
+    });
+
+    it('reports a colour whose line is gone or left empty', () => {
+        const text = css(defaults)
+            .replace(/\s*--Accentuation:[^;]*;/, '')
+            .replace(/(--Borders:)[^;]*;/, '$1 ;');
+        const { rejected } = t.resolveQuickInput(text, defaults);
+        assert.deepEqual(rejected.map(r => [r.cssVar, r.value]), [['--Accentuation', null], ['--Borders', null]]);
+    });
+
+    it('finds a broken colour whatever the case of its variable name', () => {
+        const text = css(defaults).replace(/--Accentuation:\s*#[0-9A-Fa-f]+/, '--accentuation: #00AAF');
+        assert.deepEqual(t.resolveQuickInput(text, defaults).rejected.map(r => r.value), ['#00AAF']);
     });
 
     it('keeps the previous toggle while it is half-typed, and honours an explicit INHERIT', () => {
@@ -90,6 +103,41 @@ describe('Quick layer', () => {
     it('derives the glow keys from the accent', () => {
         const colors = t.deriveQuickColors({ ...defaults, 'ui.cursorLineGlow': 'yes' }, mars);
         assert.ok(t.sameColor(colors[GLOW], defaults['ui.accentPrimary'].slice(0, 7) + '60'));
+    });
+});
+
+describe('Rejected colour notices', () => {
+    const broken = (value) => ({ cssVar: '--Accentuation', value: value });
+
+    it('announces a rejected value once, then waits 15 s before the next notice', () => {
+        let plan = t.planNotice(undefined, [broken('#0')], 0);
+        assert.equal(plan.announce.length, 1);
+        plan = t.planNotice(plan.next, [broken('#0')], 1000);
+        assert.equal(plan.announce.length, 0, 'the same value is not announced twice');
+        plan = t.planNotice(plan.next, [broken('#00AAF')], 5000);
+        assert.equal(plan.announce.length, 0, 'a new value within 15 s waits');
+        plan = t.planNotice(plan.next, [broken('#00AAG')], 15000);
+        assert.equal(plan.announce.length, 1, 'the next value after 15 s is announced');
+    });
+
+    it('announces a value again once it was fixed and broken anew', () => {
+        let plan = t.planNotice(undefined, [broken('#0')], 0);
+        plan = t.planNotice(plan.next, [], 20000);
+        plan = t.planNotice(plan.next, [broken('#0')], 40000);
+        assert.equal(plan.announce.length, 1);
+    });
+
+    it('calls a value erased with its semicolon missing, not the next line', () => {
+        const view = ':root {\n    --Accentuation:\n    --Secondary-Background:  #062F40;\n}\n';
+        const [r] = t.resolveQuickInput(view, t.quickDefaults(mars)).rejected.filter(x => x.cssVar === '--Accentuation');
+        assert.equal(r.value, null);
+    });
+
+    it('keeps the toast to one line, the kept colour first', () => {
+        assert.equal(t.summarizeRejected({ cssVar: '--Main-Text', value: '#e0hHs', kept: '#E0DEF4' }),
+            '--Main-Text stays #E0DEF4 (#e0hHs is invalid)');
+        assert.equal(t.summarizeRejected({ cssVar: '--Borders', value: null, kept: '#000000' }),
+            '--Borders is missing, stays #000000');
     });
 });
 

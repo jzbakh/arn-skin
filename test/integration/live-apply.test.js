@@ -83,4 +83,29 @@ describe('live apply — editing a customisation buffer', function () {
         assert.equal(ourColors()['editor.background'], '#ABCDEF',
             'the live handler should have pushed the edit into settings');
     });
+
+    it('names a rejected Quick colour and the colour kept, once per rejected value', async () => {
+        const warnings = [];
+        const warn = vscode.window.showWarningMessage;
+        vscode.window.showWarningMessage = async (msg) => { warnings.push(msg); return undefined; };
+        const doc = await vscode.workspace.openTextDocument(quickUri);
+        const editor = await vscode.window.showTextDocument(doc);
+        const rewrite = async (transform) => {
+            const text = doc.getText();
+            await editor.edit(b => b.replace(new vscode.Range(doc.positionAt(0), doc.positionAt(text.length)), transform(text)));
+            await settle();
+        };
+        try {
+            await rewrite(text => text.replace(/(--Accentuation:\s*)#[0-9A-Fa-f]+/, '$1#00AAF'));
+            await rewrite(text => text.replace(/(--Main-Text:\s*)#[0-9A-Fa-f]+/, '$1#C8D3E1'));
+        } finally {
+            vscode.window.showWarningMessage = warn;
+        }
+
+        // The 15 s between two notices runs on the wall clock, which a stalled CI
+        // host can overrun: planNotice's unit tests cover it.
+        assert.deepEqual(warnings, [
+            'ARN-Skin: --Accentuation stays #3DD7C7 (#00AAF is invalid)',
+        ], 'one notice, none while the same value stays broken');
+    });
 });

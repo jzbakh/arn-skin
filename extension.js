@@ -878,18 +878,18 @@ async function closeOtherCustomisationFilesForTheme(themeLabel, keepMode) {
 // =========================================================================
 
 const QUICK_BASES = [
-    ['ui.baseBackground', 'bg', 'baseBackground'],
-    ['ui.baseForeground', 'text', 'baseForeground'],
-    ['ui.accentPrimary', 'accent', 'accentPrimary'],
-    ['ui.secondaryBackground', 'bgSec', 'secondaryBackground'],
-    ['ui.surfaceElevated', 'surfaceElevated', 'surfaceElevated'],
-    ['ui.borders', 'border', 'borders'],
-    ['ui.activeBorder', 'activeBorder', 'activeBorder'],
-    ['ui.selection', 'selection', 'selection'],
-    ['status.warning', 'warning', 'statusWarning'],
-    ['status.error', 'error', 'statusError'],
-    ['status.success', 'success', 'statusSuccess'],
-    ['status.info', 'info', 'statusInfo'],
+    ['ui.baseBackground', 'bg', 'baseBackground', 'Global-Background'],
+    ['ui.baseForeground', 'text', 'baseForeground', 'Main-Text'],
+    ['ui.accentPrimary', 'accent', 'accentPrimary', 'Accentuation'],
+    ['ui.secondaryBackground', 'bgSec', 'secondaryBackground', 'Secondary-Background'],
+    ['ui.surfaceElevated', 'surfaceElevated', 'surfaceElevated', 'Surface-Elevated'],
+    ['ui.borders', 'border', 'borders', 'Borders'],
+    ['ui.activeBorder', 'activeBorder', 'activeBorder', 'Active-Border'],
+    ['ui.selection', 'selection', 'selection', 'Selection'],
+    ['status.warning', 'warning', 'statusWarning', 'Status-Warning'],
+    ['status.error', 'error', 'statusError', 'Status-Error'],
+    ['status.success', 'success', 'statusSuccess', 'Status-Success'],
+    ['status.info', 'info', 'statusInfo', 'Status-Info'],
 ];
 const QUICK_TOGGLES = [
     ['ui.borderless', 'Opt-Borderless-Mode', 'borderless'],
@@ -942,19 +942,25 @@ function compactQuick(quick, themeJson) {
 
 // A half-typed hex or toggle keeps its previous value instead of briefly
 // dropping every key it drives, and with them the Advanced overrides on those
-// keys.
+// keys. Rejected colours are returned with the text written and the colour
+// kept, for the user to fix. `value` is null when the line is gone.
 function resolveQuickInput(cssText, previous) {
     const parsed = parseQuickCss(cssText);
     const quick = { ...previous };
-    const missing = [];
-    for (const [key] of QUICK_BASES) {
-        if (parsed[key]) quick[key] = parsed[key];
-        else missing.push(key);
+    const rejected = [];
+    for (const [key, , , cssVar] of QUICK_BASES) {
+        if (parsed[key]) {
+            quick[key] = parsed[key];
+            continue;
+        }
+        const written = new RegExp(`--${cssVar}:[ \\t]*([^;\\n]*)`, 'i').exec(cssText);
+        const value = written && written[1].trim();
+        rejected.push({ cssVar: `--${cssVar}`, value: value || null, kept: colorUtils.normalizeHex(previous[key]) });
     }
     for (const [key, cssVar] of QUICK_TOGGLES) {
         if (new RegExp(`--${cssVar}:\\s*(yes|no|inherit)\\b`, 'i').test(cssText)) quick[key] = parsed[key];
     }
-    return { quick, missing };
+    return { quick, rejected };
 }
 
 function deriveQuickColors(quick, themeJson) {
@@ -1551,17 +1557,15 @@ async function resolveTheme(context, themeLabel) {
     return themeLabel ? getThemeData(context, themeLabel) : getActiveThemeData(context);
 }
 
+// Returns the colours it rejected; each kept its previous value.
 async function applyQuick(context, cssText, themeLabel) {
     const theme = await resolveTheme(context, themeLabel);
-    if (!theme) return;
+    if (!theme) return [];
     const { themeJson } = theme;
     const state = await loadThemeState(context, theme.themeLabel, themeJson);
 
     const before = expandQuick(state.quick, themeJson);
-    const { quick: after, missing } = resolveQuickInput(cssText, before);
-    if (missing.length > 0 && typeof context.__arnReportMissingVars === 'function') {
-        context.__arnReportMissingVars(missing);
-    }
+    const { quick: after, rejected } = resolveQuickInput(cssText, before);
 
     await saveThemeState(theme.themeLabel, themeJson, {
         ...state,
@@ -1569,6 +1573,7 @@ async function applyQuick(context, cssText, themeLabel) {
         ui: dropSupersededOverrides(state.ui,
             deriveQuickColors(before, themeJson), deriveQuickColors(after, themeJson)),
     });
+    return rejected;
 }
 
 // Deep-equality between two plain JSON values (null/string/number/bool/
@@ -1716,6 +1721,26 @@ async function getThemeData(context, themeLabel) {
     return { themeLabel, themeJson, packageJson };
 }
 
+// One line, short enough for a notification toast: the kept colour first.
+function summarizeRejected(r) {
+    if (r.value === null) return `${r.cssVar} is missing, stays ${r.kept}`;
+    return `${r.cssVar} stays ${r.kept} (${r.value} is invalid)`;
+}
+
+const NOTICE_COOLDOWN_MS = 15000;
+
+// Which rejections a notice announces: each value once, and at most one notice
+// per file every 15 s, so a colour typed letter by letter with long pauses does
+// not raise one per letter. The file itself always shows the current state.
+function planNotice(previous, rejected, now) {
+    const id = (r) => `${r.cssVar}=${r.value}`;
+    const seen = previous ? previous.seen : new Set();
+    const lastAt = previous ? previous.at : -Infinity;
+    const fresh = rejected.filter(r => !seen.has(id(r)));
+    const due = fresh.length > 0 && now - lastAt >= NOTICE_COOLDOWN_MS;
+    return { announce: due ? fresh : [], next: { seen: new Set(rejected.map(id)), at: due ? now : lastAt } };
+}
+
 // =========================================================================
 // ACTIVATE
 // =========================================================================
@@ -1764,18 +1789,16 @@ function activate(context) {
         vscode.window.showErrorMessage(`ARN-Skin: failed to apply customization — ${msg}`);
     };
 
-    // One-shot warning when the Quick CSS has missing variables (rare but
-    // possible if the user renames a CSS custom property by hand).
-    let lastMissingWarningAt = 0;
-    const reportMissingVars = (names) => {
-        const now = Date.now();
-        if (now - lastMissingWarningAt < RATE_LIMIT_MS) return;
-        lastMissingWarningAt = now;
-        vscode.window.showWarningMessage(
-            `ARN-Skin: ${names.length} Quick variable(s) missing or unparsed — ${names.slice(0, 3).join(', ')}${names.length > 3 ? '…' : ''}`
-        );
+    // A colour typed by hand can be half-written or broken. The notice waits
+    // for the debounce; planNotice decides what it announces.
+    const notices = new Map();
+    const reportRejected = (fileKey, rejected) => {
+        const { announce, next } = planNotice(notices.get(fileKey), rejected, Date.now());
+        notices.set(fileKey, next);
+        if (announce.length === 0) return;
+        const more = announce.length > 1 ? ` (+${announce.length - 1} more)` : '';
+        vscode.window.showWarningMessage(`ARN-Skin: ${summarizeRejected(announce[0])}${more}`);
     };
-    context.__arnReportMissingVars = reportMissingVars;
 
     const updateStatusBar = () => {
         const theme = vscode.workspace.getConfiguration('workbench').get('colorTheme');
@@ -1805,9 +1828,9 @@ function activate(context) {
         })
     );
 
-    const applyByMode = async (mode, text, themeLabel) => {
+    const applyByMode = async (mode, text, themeLabel, fileKey) => {
         if (mode === 'quick') {
-            await applyQuick(context, text, themeLabel);
+            reportRejected(fileKey, await applyQuick(context, text, themeLabel));
         } else if (mode === 'advanced-ui') {
             await applyAdvancedUI(context, text, themeLabel);
         } else if (mode === 'advanced-syntax') {
@@ -1834,7 +1857,7 @@ function activate(context) {
             const theme = await getThemeData(context, themeLabel);
             if (theme) editSnapshots.set(themeLabel, await loadThemeState(context, themeLabel, theme.themeJson));
         }
-        await applyByMode(mode, doc.getText(), themeLabel);
+        await applyByMode(mode, doc.getText(), themeLabel, doc.uri.toString());
     };
 
     const pendingApplies = new Map();
@@ -1909,7 +1932,7 @@ function activate(context) {
                         if (theme) await saveThemeState(themeLabel, theme.themeJson, snapshot);
                     } else if (revertFromDisk.delete(key)) {
                         const text = await readTextIfExists(uri);
-                        if (text !== null) await applyByMode(mode, text, themeLabel);
+                        if (text !== null) await applyByMode(mode, text, themeLabel, key);
                     }
                 }).catch(reportApplyError);
             }
@@ -2091,6 +2114,8 @@ module.exports.__testing = {
     extractBaseColorsFromTheme,
     generateQuickTheme,
     parseQuickCss,
+    planNotice,
+    summarizeRejected,
     buildQuickCssContent,
     sanitizeLabel,
     planetOf,
