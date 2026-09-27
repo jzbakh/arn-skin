@@ -1512,14 +1512,115 @@ slow while editing this file.
 }
 
 // =========================================================================
+// CSS COLOUR NOTATIONS — every format the CSS colour picker can write
+// Clicking the picker's header cycles through rgb, hex, hsl, hwb, lab, lch,
+// oklab and oklch. Each reads into #RRGGBB, or #RRGGBBAA below full opacity.
+// lab() and lch() use the D65 white point, as VS Code's picker writes them;
+// CSS Color 4 specifies D50, which would shift a picked colour on read-back.
+// =========================================================================
+
+const D65_WHITE = [0.3127 / 0.3290, 1, (1 - 0.3127 - 0.3290) / 0.3290];
+const XYZ_TO_LINEAR_SRGB = [
+    [3.2409699419045226, -1.537383177570094, -0.4986107602930034],
+    [-0.9692436362808796, 1.8759675015077202, 0.04155505740717559],
+    [0.05563007969699366, -0.20397695888897652, 1.0569715142428786],
+];
+const multiply = (m, v) => m.map(row => row[0] * v[0] + row[1] * v[1] + row[2] * v[2]);
+
+function labToLinearSrgb(L, a, b) {
+    const k = 24389 / 27;
+    const e = 216 / 24389;
+    const fy = (L + 16) / 116;
+    const fx = fy + a / 500;
+    const fz = fy - b / 200;
+    const xyz = [
+        fx ** 3 > e ? fx ** 3 : (116 * fx - 16) / k,
+        L > k * e ? fy ** 3 : L / k,
+        fz ** 3 > e ? fz ** 3 : (116 * fz - 16) / k,
+    ].map((c, i) => c * D65_WHITE[i]);
+    return multiply(XYZ_TO_LINEAR_SRGB, xyz);
+}
+
+function oklabToLinearSrgb(L, a, b) {
+    const [l, m, s] = [
+        L + 0.3963377774 * a + 0.2158037573 * b,
+        L - 0.1055613458 * a - 0.0638541728 * b,
+        L - 0.0894841775 * a - 1.2914855480 * b,
+    ].map(c => c ** 3);
+    return [
+        4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+        -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+        -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+    ];
+}
+
+const encodeSrgb = (c) => 255 * (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
+const polar = (chroma, hueDeg) => [chroma * Math.cos(hueDeg * Math.PI / 180), chroma * Math.sin(hueDeg * Math.PI / 180)];
+
+function cssColorToHex(text) {
+    const value = String(text).trim().toLowerCase();
+    if (HEX_COLOR_RE.test(value)) return colorUtils.normalizeHex(value);
+    const m = /^(rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(([^()]*)\)$/.exec(value);
+    if (!m) return null;
+    const parts = m[2].replace(/[,/]/g, ' ').trim().split(/\s+/);
+    if (parts.length !== 3 && parts.length !== 4) return null;
+    // A percentage is scaled so that 100% equals `full`, as each notation defines.
+    const num = (token, full = 100) => {
+        if (!/^[+-]?(\d+\.?\d*|\.\d+)(%|deg)?$/.test(token)) return NaN;
+        const n = parseFloat(token);
+        return token.endsWith('%') ? n * full / 100 : n;
+    };
+    const [x, y, z] = parts;
+    const alpha = parts[3] === undefined ? 1 : num(parts[3], 1);
+    const hue = ((num(x) % 360) + 360) % 360 / 360;
+    let rgb;
+    switch (m[1]) {
+        case 'rgb': case 'rgba':
+            rgb = [num(x, 255), num(y, 255), num(z, 255)];
+            break;
+        case 'hsl': case 'hsla': {
+            const c = colorUtils.hslToRgb(hue, num(y, 1), num(z, 1));
+            rgb = [c.r, c.g, c.b];
+            break;
+        }
+        case 'hwb': {
+            const w = num(y, 1);
+            const bl = num(z, 1);
+            if (w + bl >= 1) {
+                rgb = Array(3).fill(255 * w / (w + bl));
+            } else {
+                const c = colorUtils.hslToRgb(hue, 1, 0.5);
+                rgb = [c.r, c.g, c.b].map(v => 255 * (v / 255 * (1 - w - bl) + w));
+            }
+            break;
+        }
+        case 'lab':
+            rgb = labToLinearSrgb(num(x, 100), num(y, 125), num(z, 125)).map(encodeSrgb);
+            break;
+        case 'lch':
+            rgb = labToLinearSrgb(num(x, 100), ...polar(num(y, 150), num(z))).map(encodeSrgb);
+            break;
+        case 'oklab':
+            rgb = oklabToLinearSrgb(num(x, 1), num(y, 0.4), num(z, 0.4)).map(encodeSrgb);
+            break;
+        case 'oklch':
+            rgb = oklabToLinearSrgb(num(x, 1), ...polar(num(y, 0.4), num(z))).map(encodeSrgb);
+            break;
+    }
+    if (![...rgb, alpha].every(Number.isFinite)) return null;
+    const hex = colorUtils.rgbToHex(...rgb);
+    if (alpha >= 1) return hex;
+    return hex + Math.round(Math.max(0, alpha) * 255).toString(16).padStart(2, '0').toUpperCase();
+}
+
+// =========================================================================
 // CSS PARSING for QUICK mode
 // =========================================================================
 
 function parseQuickCss(text) {
     const parseHex = (varName) => {
-        const re = new RegExp(`--${varName}:\\s*(#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3}))(?![0-9a-fA-F])`, 'i');
-        const m = text.match(re);
-        return m ? colorUtils.normalizeHex(m[1]) : null;
+        const m = new RegExp(`--${varName}:\\s*([^;\\n]+)`, 'i').exec(text);
+        return m ? cssColorToHex(m[1]) : null;
     };
     const parseToggle = (varName) => {
         const re = new RegExp(`--${varName}:\\s*(yes|no|inherit)\\b`, 'i');
@@ -2116,6 +2217,7 @@ module.exports.__testing = {
     parseQuickCss,
     planNotice,
     summarizeRejected,
+    cssColorToHex,
     buildQuickCssContent,
     sanitizeLabel,
     planetOf,

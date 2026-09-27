@@ -3,6 +3,12 @@ const { __testing } = require('../../extension');
 const { parseQuickCss, buildQuickCssContent } = __testing;
 
 describe('parseQuickCss', () => {
+    it('reads a colour the picker wrote in another notation', () => {
+        const parsed = parseQuickCss(':root { --Accentuation: rgb(158, 83, 68); --Selection: hsla(10, 40%, 44%, 0.5); }');
+        assert.equal(parsed['ui.accentPrimary'], '#9E5344');
+        assert.ok(/^#[0-9A-F]{8}$/.test(parsed['ui.selection']));
+    });
+
     it('extracts a 6-char hex color variable', () => {
         const css = `:root { --Global-Background: #123456; }`;
         const result = parseQuickCss(css);
@@ -116,6 +122,43 @@ describe('parseQuickCss', () => {
         assert.equal(result['status.error'], '#CCCCCC');
         assert.equal(result['status.success'], '#DDDDDD');
         assert.equal(result['status.info'], '#EEEEEE');
+    });
+});
+
+describe('cssColorToHex — every format the colour picker writes', () => {
+    const { cssColorToHex } = require('../../extension').__testing;
+    const channels = (hex) => [1, 3, 5, 7].map(i => parseInt(hex.slice(i, i + 2) || 'FF', 16));
+    const close = (actual, expected) => {
+        assert.ok(actual, 'must parse');
+        const a = channels(actual);
+        const e = channels(expected);
+        assert.ok(a.every((v, i) => Math.abs(v - e[i]) <= 2), `${actual} should be within 2 of ${expected}`);
+    };
+
+    const opaque = ['rgb(158, 83, 68)', '#9e5344', 'hsl(10, 40%, 44%)', 'hwb(10 27% 38%)',
+        'lab(44.05% 29.55 22.71)', 'lch(44.05% 37.27 37.55)',
+        'oklab(52.88699999999999% 0.08679 0.0552)', 'oklch(52.887% 0.10286 32.457)'];
+    const translucent = ['rgba(158, 83, 68, 0.5)', '#9e534480', 'hsla(10, 40%, 44%, 0.5)', 'hwb(10 27% 38% / 0.5)',
+        'lab(44.05% 29.55 22.71 / 0.5)', 'lch(44.05% 37.27 37.55 / 0.5)',
+        'oklab(52.88699999999999% 0.08679 0.0552 / 0.5)', 'oklch(52.887% 0.10286 32.457 / 0.5)'];
+
+    for (const text of opaque) {
+        it(`reads ${text}`, () => close(cssColorToHex(text), '#9E5344'));
+    }
+    for (const text of translucent) {
+        it(`reads ${text}`, () => close(cssColorToHex(text), '#9E534480'));
+    }
+
+    it('keeps hex exact and in the canonical form', () => {
+        assert.equal(cssColorToHex('#abc'), '#AABBCC');
+        assert.equal(cssColorToHex(' #9e5344 '), '#9E5344');
+        assert.equal(cssColorToHex('rgb(158 83 68 / 50%)'), '#9E534480');
+    });
+
+    it('rejects anything that is not a colour', () => {
+        for (const bad of ['#00AAF', '#GG0000', 'rgb(1, 2)', 'rgb(a, b, c)', 'red', '', 'hsl(10, 40%, 44%) extra']) {
+            assert.equal(cssColorToHex(bad), null, bad);
+        }
     });
 });
 

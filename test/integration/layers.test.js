@@ -297,6 +297,13 @@ describe('Quick and Advanced layers — user transitions', function () {
         }
     });
 
+    it('reads a colour the picker wrote in another notation', async () => {
+        const quick = await openMode('quick');
+        await type(quick, (text) => text.replace(/(--Accentuation:\s*)#[0-9A-Fa-f]+/, '$1oklch(52.887% 0.10286 32.457)'));
+
+        assert.ok(__testing.sameColor(colorsOf()['button.background'], '#9E5344'));
+    });
+
     it('writes one key for one Advanced tweak', async () => {
         await type(await openMode('advanced-ui'), MINIMAP);
         assert.deepEqual(colorsOf(), { 'minimap.background': '#FF00FF' });
