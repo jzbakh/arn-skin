@@ -235,7 +235,7 @@ describe('buildQuickCssContent', () => {
         assert.ok(out.includes('YES: Hides all UI borders'));
         assert.ok(out.includes('NO:  Applies a subtle, text-tinted border'));
         assert.ok(out.includes('YES: Enables maximum-contrast surfaces'));
-        assert.ok(out.includes('NO:  Softens the background contrast'));
+        assert.ok(out.includes("NO:  Keeps the theme's own background shades"));
         assert.ok(out.includes('YES: Highlights the active tab'));
         assert.ok(out.includes('NO:  Keeps all tabs uniform'));
         assert.ok(out.includes('YES: Enables accent-colored background for selected text'));

@@ -504,4 +504,23 @@ describe('Quick and Advanced layers — user transitions', function () {
         assert.deepEqual(entryOf('editor', 'semanticTokenColorCustomizations').rules, { variable: { foreground: '#123456' } },
             'the semantic edit moves to where VS Code reads it');
     });
+
+    it('lets the colours an earlier toggle wrote follow the toggle as it is now', async () => {
+        const defaultView = (await openMode('quick')).document.getText();
+        await closeAll();
+        const legacyDir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'arn-legacy-'));
+        fs.writeFileSync(path.join(legacyDir, 'quick-arn-mars-amber-storm.css'),
+            defaultView.replace(/(--Opt-Pure-Black-Mode:\s*)\w+/, '$1NO'));
+        const written = __testing.legacyToggleColors({ 'ui.pureBlack': 'no' }, themeJson);
+        await wb().update('colorCustomizations', {
+            [`[${MARS}]`]: { ...themeJson.colors, ...written, 'minimap.background': '#FF00FF' },
+        }, G);
+
+        const ctx = { extensionUri: vscode.Uri.file(REPO_ROOT), globalStorageUri: vscode.Uri.file(legacyDir) };
+        const state = await __testing.loadThemeState(ctx, MARS, themeJson);
+        fs.rmSync(legacyDir, { recursive: true, force: true });
+
+        assert.deepEqual(Object.keys(state.ui), ['minimap.background'], 'only the user edit is an override');
+        assert.equal(colorsOf()['editor.background'], undefined, 'the toggle shows its current colours');
+    });
 });

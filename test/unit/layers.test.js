@@ -106,6 +106,37 @@ describe('Quick layer', () => {
     });
 });
 
+describe('Pure-Black NO', () => {
+    const THEMES_DIR = path.join(__dirname, '..', '..', 'themes');
+
+    for (const file of fs.readdirSync(THEMES_DIR).filter(f => f.endsWith('.json'))) {
+        const theme = t.parseJsonc(fs.readFileSync(path.join(THEMES_DIR, file), 'utf8'));
+
+        it(`leaves the backgrounds of ${file} to the theme`, () => {
+            assert.deepEqual(t.deriveQuickColors({ ...t.quickDefaults(theme), 'ui.pureBlack': 'no' }, theme), {});
+        });
+    }
+});
+
+describe('Colours the toggles of 1.0.5 wrote', () => {
+    const jupiter = t.parseJsonc(fs.readFileSync(path.join(__dirname, '..', '..', 'themes', 'arn-jupiter.json'), 'utf8'));
+
+    it('gives back the lifted backgrounds of Pure-Black NO', () => {
+        const dark = t.legacyToggleColors({ 'ui.pureBlack': 'no' }, mars);
+        assert.equal(Object.keys(dark).length, 20);
+        assert.equal(dark['editor.background'], '#150D08');
+        assert.equal(dark['sideBar.background'], '#23160D');
+        assert.equal(dark['menu.background'], '#C2865E', 'the pale widgets 1.0.5 shipped');
+        const light = t.legacyToggleColors({ 'ui.pureBlack': 'no' }, jupiter);
+        assert.equal(light['editor.background'], '#FAF4E4');
+        assert.equal(light['menu.background'], '#EDE6D1');
+    });
+
+    it('gives nothing back for a toggle left on INHERIT', () => {
+        assert.deepEqual(t.legacyToggleColors({}, mars), {});
+    });
+});
+
 describe('Rejected colour notices', () => {
     const broken = (value) => ({ name: '--Accentuation', value });
 

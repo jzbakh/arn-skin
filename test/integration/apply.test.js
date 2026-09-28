@@ -267,13 +267,11 @@ describe('Apply pipeline — full integration', function () {
             assert.equal(c['editorWidget.background'], '#0A0A0A');
         });
 
-        it('NO lifts the editor background away from the theme default (softer contrast)', async () => {
+        it('NO leaves the theme backgrounds in place', async () => {
             await applyQuick(fakeCtx, buildCss(themeBases, {}, { pureBlack: 'NO' }));
-            const bg = ourColors()['editor.background'];
-            assert.ok(bg, 'editor.background must be set');
-            assert.notEqual(bg, '#000000');
-            assert.notEqual(bg.toLowerCase(), themeBases.bg.toLowerCase(),
-                'NO must lift the bg — should differ from the raw theme value');
+            assert.equal(ourColors()['editor.background'], undefined);
+            assert.equal(ourColors()['sideBar.background'], undefined);
+            assert.equal(ourColors()['menu.background'], undefined);
         });
 
         it('INHERIT after YES purges every Pure-Black surface key', async () => {

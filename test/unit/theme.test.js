@@ -281,13 +281,14 @@ describe('generateQuickTheme — pureBlack toggle', () => {
         assert.equal(out.colors['input.background'], '#0A0A0A');
     });
 
-    it('softens contrast (lifted backgrounds) on dark theme when "no"', () => {
+    it('keeps the theme backgrounds when "no"', () => {
         const parsed = { ...baselineParsed, 'ui.pureBlack': 'no' };
-        const out = generateQuickTheme(parsed, noneDirty, 'dark');
-        const bg = out.colors['editor.background'];
-        assert.ok(bg, 'editor.background must be set');
-        assert.notEqual(bg, '#1E1E1E', 'NO must NOT match the raw bg — should be lifted');
-        assert.notEqual(bg, '#000000', 'NO must NOT match pure black');
+        for (const type of ['dark', 'light']) {
+            const out = generateQuickTheme(parsed, noneDirty, type);
+            assert.equal(out.colors['editor.background'], undefined);
+            assert.equal(out.colors['sideBar.background'], undefined);
+            assert.equal(out.colors['menu.background'], undefined);
+        }
     });
 
     it('purges background overrides on "inherit"', () => {

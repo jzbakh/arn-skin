@@ -596,9 +596,8 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     //             editor, near-black for panels/menus/widgets), pure
     //             white on light themes. Maximises code-area readability
     //             and saves OLED battery on dark themes.
-    //   NO      → soften the contrast — backgrounds are lifted on dark
-    //             themes (and lowered on light) so the eyes don't fight
-    //             the deep black. Useful for long sessions.
+    //   NO      → keep the theme's own backgrounds: nothing is written,
+    //             as with INHERIT.
     //   INHERIT → leave the keys alone.
     if (pureBlack === 'yes') {
         const primary = isLight ? '#FFFFFF' : '#000000';
@@ -625,33 +624,6 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
         colors['dropdown.background'] = lift;
         colors['quickInput.background'] = lift;
         colors['quickInputList.focusBackground'] = M(lift, accent || '#888888', 0.15);
-        colors['menu.background'] = lift;
-        colors['notifications.background'] = lift;
-        colors['input.background'] = lift;
-    } else if (pureBlack === 'no' && bg && bgSec) {
-        // Soften — lift backgrounds on dark, lower on light.
-        const liftDelta = isLight ? -0.04 : 0.03;
-        const widgetDelta = isLight ? -0.07 : 0.5;
-        const primary = L(bg, liftDelta);
-        const secondary = L(bgSec, liftDelta);
-        const lift = L(bgSec, widgetDelta);
-        colors['editor.background'] = primary;
-        colors['terminal.background'] = primary;
-        colors['breadcrumb.background'] = primary;
-        colors['panel.background'] = primary;
-        colors['tab.activeBackground'] = primary;
-        colors['sideBar.background'] = secondary;
-        colors['activityBar.background'] = secondary;
-        colors['statusBar.background'] = secondary;
-        colors['titleBar.activeBackground'] = secondary;
-        colors['titleBar.inactiveBackground'] = secondary;
-        colors['editorGroupHeader.tabsBackground'] = secondary;
-        colors['tab.inactiveBackground'] = secondary;
-        colors['editorWidget.background'] = lift;
-        colors['editorHoverWidget.background'] = lift;
-        colors['editorSuggestWidget.background'] = lift;
-        colors['dropdown.background'] = lift;
-        colors['quickInput.background'] = lift;
         colors['menu.background'] = lift;
         colors['notifications.background'] = lift;
         colors['input.background'] = lift;
@@ -1285,9 +1257,37 @@ async function readTextIfExists(uri) {
     }
 }
 
+// What 1.0.5 wrote for the toggles whose colours have changed since. Such a
+// value is the toggle's, not an edit of the user's, so rebuilding the layers
+// does not keep it as an override and the toggle's current colours take over.
+// Frozen on purpose: it must not follow later changes to the toggles.
+function legacyToggleColors(quick, themeJson) {
+    const q = expandQuick(quick, themeJson);
+    const light = themeJson.type === 'vs' || themeJson.type === 'light';
+    const L = colorUtils.adjustLightness;
+    const out = {};
+    const paint = (keys, value) => { for (const key of keys) out[key] = value; };
+    const surfaces = (primary, secondary, widgets) => {
+        paint(['editor.background', 'terminal.background', 'breadcrumb.background', 'panel.background',
+            'tab.activeBackground'], primary);
+        paint(['sideBar.background', 'activityBar.background', 'statusBar.background', 'titleBar.activeBackground',
+            'titleBar.inactiveBackground', 'editorGroupHeader.tabsBackground', 'tab.inactiveBackground'], secondary);
+        paint(['editorWidget.background', 'editorHoverWidget.background', 'editorSuggestWidget.background',
+            'dropdown.background', 'quickInput.background', 'menu.background', 'notifications.background',
+            'input.background'], widgets);
+    };
+    if (q['ui.pureBlack'] === 'no') {
+        const lift = light ? -0.04 : 0.03;
+        surfaces(L(q['ui.baseBackground'], lift), L(q['ui.secondaryBackground'], lift),
+            L(q['ui.secondaryBackground'], light ? -0.07 : 0.5));
+    }
+    return out;
+}
+
 // Earlier versions kept no state: the outputs were the only record, Advanced
 // wrote the whole theme into them, and the Quick file alone held the toggles.
-// The layers are rebuilt from both so the colours on screen do not change.
+// The layers are rebuilt from both so the colours on screen do not change,
+// except those an older toggle wrote: they follow the toggle as it is now.
 async function loadThemeState(context, themeLabel, themeJson) {
     const stored = readStoredState(themeLabel);
     if (stored) return stored;
@@ -1306,7 +1306,7 @@ async function loadThemeState(context, themeLabel, themeJson) {
     const derived = deriveQuickColors(expandQuick(quick, themeJson), themeJson);
     const state = compactState({
         quick,
-        ui: diffColors(cc, { ...(themeJson.colors || {}), ...derived }),
+        ui: diffColors(diffColors(cc, { ...(themeJson.colors || {}), ...derived }), legacyToggleColors(quick, themeJson)),
         semantic: diffSemantic({ ...(tc && tc.semanticTokenColors), ...(sc && sc.rules) }, themeJson.semanticTokenColors),
         textMate: diffTextMate(tc && tc.textMateRules, themeJson.tokenColors),
     });
@@ -1379,7 +1379,7 @@ function buildQuickCssContent(baseValues, toggles) {
     --Opt-Cursor-Line-Glow:     ${toggles.cursorLineGlow};
 
   /* YES: Enables maximum-contrast surfaces.
-     NO:  Softens the background contrast to reduce eye strain. */
+     NO:  Keeps the theme's own background shades. */
     --Opt-Pure-Black-Mode:      ${toggles.pureBlack};
 
   /* YES: Enables accent-colored background for selected text.
@@ -2430,6 +2430,7 @@ module.exports.__testing = {
     composeOutputs,
     withOwnedPart,
     readStoredState,
+    legacyToggleColors,
     loadThemeState,
     saveThemeState,
 };
