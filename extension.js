@@ -1099,8 +1099,8 @@ function keepPreviousSyntaxColors(payload, previousSemantic, previousRules) {
     return { semantic, rules, rejected };
 }
 
-// Two lengths of the same news: the full sentence on hover, and a line
-// short enough for a notification toast.
+// Three lengths of the same news: the full sentence on hover, a line short
+// enough for a notification toast, and the hint written after the line.
 function describeRejected(r) {
     if (r.value === null) return `${r.name} is missing; the previous color (${r.kept}) is kept.`;
     if (r.kept === undefined) return `${r.name} is not a valid color (${r.value}) and is ignored.`;
@@ -1111,6 +1111,12 @@ function summarizeRejected(r) {
     if (r.value === null) return `${r.name} is missing, stays ${r.kept}`;
     if (r.kept === undefined) return `${r.name} ignored (${r.value} is invalid)`;
     return `${r.name} stays ${r.kept} (${r.value} is invalid)`;
+}
+
+function hintForRejected(r) {
+    if (r.value === null) return `← ${r.name} missing, previous color: ${r.kept}`;
+    if (r.kept === undefined) return '← ignored: not a color';
+    return `← previous color: ${r.kept}`;
 }
 
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -2026,11 +2032,26 @@ function activate(context) {
         vscode.window.showWarningMessage(`ARN-Skin: ${summarizeRejected(announce[0])}${more}`);
     };
 
-    // The same rejections, underlined where they are written, each with a
-    // quick fix that puts the kept colour back.
+    // The same rejections, underlined where they are written, with the kept
+    // colour after the line and a quick fix that puts it back.
     const diagnostics = vscode.languages.createDiagnosticCollection('arn-skin');
-    context.subscriptions.push(diagnostics);
-    const quickFixes = new Map();
+    const hintDecoration = vscode.window.createTextEditorDecorationType({
+        after: { margin: '0 0 0 2em', fontStyle: 'italic', color: new vscode.ThemeColor('descriptionForeground') },
+    });
+    context.subscriptions.push(diagnostics, hintDecoration);
+    const rejectionMarks = new Map();
+    const showHints = (editor) => {
+        const marks = rejectionMarks.get(editor.document.uri.toString()) || [];
+        editor.setDecorations(hintDecoration, marks.map(m => {
+            const end = editor.document.lineAt(m.diagnostic.range.start.line).range.end;
+            return { range: new vscode.Range(end, end), renderOptions: { after: { contentText: m.hint } } };
+        }));
+    };
+    const refreshHints = (uri) => {
+        for (const editor of vscode.window.visibleTextEditors) {
+            if (editor.document.uri.toString() === uri.toString()) showHints(editor);
+        }
+    };
     const markRejected = (doc, rejected) => {
         const text = doc.getText();
         const marks = [];
@@ -2046,21 +2067,23 @@ function activate(context) {
                 range: new vscode.Range(doc.positionAt(spot.fix.start), doc.positionAt(spot.fix.end)),
                 newText: spot.fix.newText,
             };
-            marks.push({ diagnostic, fix });
+            marks.push({ diagnostic, fix, hint: hintForRejected(r) });
         }
         diagnostics.set(doc.uri, marks.map(m => m.diagnostic));
-        quickFixes.set(doc.uri.toString(), marks);
+        rejectionMarks.set(doc.uri.toString(), marks);
+        refreshHints(doc.uri);
     };
     const clearMarks = (uri) => {
         diagnostics.delete(uri);
-        quickFixes.delete(uri.toString());
+        rejectionMarks.delete(uri.toString());
+        refreshHints(uri);
     };
     context.subscriptions.push(
         vscode.languages.registerCodeActionsProvider(
             { pattern: new vscode.RelativePattern(context.globalStorageUri, '*') },
             {
                 provideCodeActions(doc, range, ctx) {
-                    const marks = quickFixes.get(doc.uri.toString()) || [];
+                    const marks = rejectionMarks.get(doc.uri.toString()) || [];
                     return marks
                         .filter(m => m.fix && ctx.diagnostics.some(d =>
                             d.source === 'ARN-Skin' && d.range.isEqual(m.diagnostic.range) && d.message === m.diagnostic.message))
@@ -2076,6 +2099,7 @@ function activate(context) {
             },
             { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }),
         vscode.workspace.onDidCloseTextDocument(doc => clearMarks(doc.uri)),
+        vscode.window.onDidChangeVisibleTextEditors(editors => editors.forEach(showHints)),
     );
 
     const updateStatusBar = () => {
@@ -2400,6 +2424,7 @@ module.exports.__testing = {
     keepPreviousSyntaxColors,
     describeRejected,
     summarizeRejected,
+    hintForRejected,
     locateRejected,
     buildQuickCssContent,
     sanitizeLabel,

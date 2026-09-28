@@ -41,6 +41,14 @@ describe('rejected colours — message', () => {
     });
 });
 
+describe('rejected colours — hint', () => {
+    it('write the kept colour after the line, naming the variable when its line is gone', () => {
+        assert.equal(t.hintForRejected({ name: '--Main-Text', value: '#e0hHs', kept: '#E0DEF4' }), '← previous color: #E0DEF4');
+        assert.equal(t.hintForRejected({ name: '--Borders', value: null, kept: '#000000' }), '← --Borders missing, previous color: #000000');
+        assert.equal(t.hintForRejected({ name: 'brand.new', value: 'red', kept: undefined }), '← ignored: not a color');
+    });
+});
+
 describe('rejected colours — underline and fix', () => {
     const underlined = (text, r) => {
         const spot = t.locateRejected(text, r);
