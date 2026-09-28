@@ -80,7 +80,7 @@
       {
         "command": "arn.manageSkin",
         "title": "Manage Theme Colors",
-        "category": "ARN Skin"
+        "category": "ARN-Skin"
       }
     ],
     "jsonValidation": [

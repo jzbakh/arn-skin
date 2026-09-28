@@ -876,7 +876,7 @@ function buildQuickCssContent(baseValues, toggles) {
 
     return `/*
 ==========================================================
-  QUICK CUSTOMIZATION — ARN SKIN
+  QUICK CUSTOMIZATION — ARN-SKIN
 ==========================================================
   Change any color via the gutter color picker.
   Changes apply in real-time (debounced 400ms).
@@ -1095,7 +1095,7 @@ async function ensureAdvancedUIFile(context, themeLabel, themeJson) {
     const header =
         `/*
 ==========================================================
-  ADVANCED · UI COLORS — ARN SKIN
+  ADVANCED · UI COLORS — ARN-SKIN
   Theme: ${themeLabel}
 ==========================================================
   Every workbench color is listed below, grouped by the
@@ -1209,7 +1209,7 @@ async function ensureAdvancedSyntaxFile(context, themeLabel, themeJson) {
     const header =
         `/*
 ==========================================================
-  ADVANCED · SYNTAX COLORS — ARN SKIN
+  ADVANCED · SYNTAX COLORS — ARN-SKIN
   Theme: ${themeLabel}
 ==========================================================
   Semantic tokens and TextMate rules for code highlighting
@@ -1564,7 +1564,7 @@ function activate(context) {
         if (now - lastNotifiedAt < RATE_LIMIT_MS) return;
         lastNotifiedAt = now;
         const msg = (err && err.message) ? err.message : String(err);
-        vscode.window.showErrorMessage(`ARN Skin: failed to apply customisation — ${msg}`);
+        vscode.window.showErrorMessage(`ARN-Skin: failed to apply customisation — ${msg}`);
     };
 
     // One-shot warning when the Quick CSS has missing variables (rare but
@@ -1575,7 +1575,7 @@ function activate(context) {
         if (now - lastMissingWarningAt < RATE_LIMIT_MS) return;
         lastMissingWarningAt = now;
         vscode.window.showWarningMessage(
-            `ARN Skin: ${names.length} Quick variable(s) missing or unparsed — ${names.slice(0, 3).join(', ')}${names.length > 3 ? '…' : ''}`
+            `ARN-Skin: ${names.length} Quick variable(s) missing or unparsed — ${names.slice(0, 3).join(', ')}${names.length > 3 ? '…' : ''}`
         );
     };
     context.__arnReportMissingVars = reportMissingVars;
@@ -1811,7 +1811,7 @@ function activate(context) {
                     });
 
                     const selected = await vscode.window.showQuickPick(themeItems, {
-                        placeHolder: "Choose an ARN theme to apply"
+                        placeHolder: "Choose an ARN-Skin theme to apply"
                     });
                     if (selected && selected.label !== themeLabel) {
                         // Cancel any pending debounced apply — its target

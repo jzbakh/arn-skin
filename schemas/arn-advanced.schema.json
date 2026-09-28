@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ARN Skin — Advanced Customization",
+  "title": "ARN-Skin — Advanced Customization",
   "type": "object",
   "properties": {
     "$schema": {
@@ -8,7 +8,7 @@
     },
     "colors": {
       "type": "object",
-      "description": "UI colors (workbench.colorCustomizations) — every key from the ARN themes is enumerated below for IntelliSense; additional keys remain accepted via additionalProperties.",
+      "description": "UI colors (workbench.colorCustomizations) — every key from the ARN-Skin themes is enumerated below for IntelliSense; additional keys remain accepted via additionalProperties.",
       "properties": {
         "activityBar.activeBackground": {
           "type": "string",
