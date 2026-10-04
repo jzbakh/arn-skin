@@ -181,6 +181,12 @@ describe('Colours the toggles of 1.0.5 wrote', () => {
         assert.equal(Object.keys(legacy).length, 5);
     });
 
+    it('gives back the raw accent label of Active-Tab-Highlight YES', () => {
+        const legacy = t.legacyToggleColors({ 'ui.activeTabHighlight': 'yes' }, jupiter);
+        assert.ok(t.sameColor(legacy['tab.activeForeground'], '#d99815'), 'the unreadable gold');
+        assert.ok(legacy['tab.unfocusedActiveForeground']);
+    });
+
     it('gives nothing back for a toggle left on INHERIT', () => {
         assert.deepEqual(t.legacyToggleColors({}, mars), {});
     });

@@ -146,6 +146,44 @@ describe('colorUtils.addAlpha', () => {
     });
 });
 
+describe('colorUtils.contrast', () => {
+    it('spans 1:1 for one colour to 21:1 for black on white', () => {
+        assert.equal(colorUtils.contrast('#777777', '#777777'), 1);
+        assert.equal(colorUtils.contrast('#000000', '#FFFFFF'), 21);
+        assert.equal(colorUtils.contrast('#FFFFFF', '#000000'), 21);
+    });
+
+    it('ignores the alpha channel', () => {
+        assert.equal(colorUtils.contrast('#00000080', '#FFFFFF'), 21);
+    });
+});
+
+describe('colorUtils.readable', () => {
+    it('keeps a colour that already reads at 4.5:1', () => {
+        assert.equal(colorUtils.readable('#4FB4FF', '#1B272F', '#D4D4D4'), '#4FB4FF');
+    });
+
+    it('pulls a pale colour toward the ink just enough to read', () => {
+        const label = colorUtils.readable('#D99815', '#F9F1DF', '#1A1205');
+        assert.equal(label, '#8D620F');
+        assert.ok(colorUtils.contrast(label, '#F9F1DF') >= 4.5);
+        assert.ok(colorUtils.contrast(colorUtils.mix('#D99815', '#1A1205', 0.35), '#F9F1DF') < 4.5,
+            'the step before still fails');
+    });
+
+    it('judges a translucent colour as it shows on the background, and returns it opaque', () => {
+        const label = colorUtils.readable('#4FB4FF4D', '#18242D', '#D8DCE0');
+        assert.equal(label, '#788EA0');
+        assert.ok(colorUtils.contrast(label, '#18242D') >= 4.5);
+    });
+
+    it('keeps the most legible step when none reads, even if that is the colour itself', () => {
+        // A dim custom text colour must not make the label worse than the accent.
+        assert.equal(colorUtils.readable('#6E7E8E', '#1B1F22', '#5C6066'), '#6E7E8E');
+        assert.equal(colorUtils.readable('#777777', '#808080', '#888888'), '#777777');
+    });
+});
+
 describe('colorUtils.cleanUndefined', () => {
     it('strips undefined and null', () => {
         const input = { a: 1, b: undefined, c: null, d: 'x' };

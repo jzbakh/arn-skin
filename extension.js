@@ -91,6 +91,34 @@ const colorUtils = {
             a.b * (1 - r) + b.b * r
         );
     },
+    // WCAG relative luminance and contrast ratio. Alpha channels are ignored.
+    luminance: (hex) => {
+        const { r, g, b } = colorUtils.hexToRgb(hex);
+        const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    },
+    contrast: (hexA, hexB) => {
+        const [hi, lo] = [colorUtils.luminance(hexA), colorUtils.luminance(hexB)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+    },
+    // `fg` when it reads at 4.5:1 on `bg`, else the first 5 % step of `fg`
+    // toward `ink` that does: a gold accent on a cream background becomes
+    // a darker gold rather than an unreadable label. A translucent `fg` is
+    // judged, and returned, as it shows on `bg`. When no step reads, the
+    // most legible one wins.
+    readable: (fg, bg, ink) => {
+        if (!fg || !bg || !ink) return fg;
+        const hex = colorUtils.normalizeHex(fg);
+        const base = hex.length === 9 ? colorUtils.mix(bg, hex, parseInt(hex.slice(7), 16) / 255) : fg;
+        let best = base;
+        for (let step = 0; step <= 20; step++) {
+            const c = step ? colorUtils.mix(base, ink, step / 20) : base;
+            const ratio = colorUtils.contrast(c, bg);
+            if (ratio >= 4.5) return c;
+            if (ratio > colorUtils.contrast(best, bg)) best = c;
+        }
+        return best;
+    },
     cleanUndefined: (obj) => {
         const cleaned = {};
         for (const key in obj) {
@@ -631,17 +659,21 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
 
     // ---- Active Tab Highlight (Material Theme inspired)
     //   YES     → strong accent presence on the active tab: tinted bg,
-    //             accent foreground, accent borders top + bottom.
-    //   NO      → flat active tab matching inactive — only the foreground
-    //             text colour distinguishes it (no borders, no bg tint).
+    //             accent foreground, accent borders top + bottom. The label
+    //             is pulled toward the text colour when the accent would read
+    //             below 4.5:1 (gold on Jupiter's cream).
+    //   NO      → plain active tab: the theme's base background and text
+    //             colour, no accent tint or border.
     //   INHERIT → leave the keys alone.
     if (activeTabHighlight === 'yes' && accent && bg) {
-        colors['tab.activeBackground'] = M(bg, accent, 0.10);
-        colors['tab.activeForeground'] = accent;
+        const activeBg = M(bg, accent, 0.10);
+        const unfocusedBg = M(bg, accent, 0.05);
+        colors['tab.activeBackground'] = activeBg;
+        colors['tab.activeForeground'] = colorUtils.readable(accent, activeBg, text);
         colors['tab.activeBorderTop'] = accent;
         colors['tab.activeBorder'] = accent;
-        colors['tab.unfocusedActiveBackground'] = M(bg, accent, 0.05);
-        colors['tab.unfocusedActiveForeground'] = M(text, accent, 0.30);
+        colors['tab.unfocusedActiveBackground'] = unfocusedBg;
+        colors['tab.unfocusedActiveForeground'] = colorUtils.readable(M(text, accent, 0.30), unfocusedBg, text);
     } else if (activeTabHighlight === 'no' && bg) {
         colors['tab.activeBackground'] = bg;
         colors['tab.activeForeground'] = text;
@@ -1299,6 +1331,10 @@ function legacyToggleColors(quick, themeJson) {
         out['editor.wordHighlightBackground'] = A('35');
         out['editor.wordHighlightStrongBackground'] = A('48');
     }
+    if (q['ui.activeTabHighlight'] === 'yes') {
+        out['tab.activeForeground'] = q['ui.accentPrimary'];
+        out['tab.unfocusedActiveForeground'] = colorUtils.mix(q['ui.baseForeground'], q['ui.accentPrimary'], 0.30);
+    }
     return out;
 }
 
@@ -1412,7 +1448,7 @@ function buildQuickCssContent(baseValues, toggles) {
 
   /* YES: Highlights the active tab with an accent background,
           text color, and top/bottom borders.
-     NO:  Keeps all tabs uniform. */
+     NO:  Plain active tab, without accent color or border. */
     --Opt-Active-Tab-Highlight: ${toggles.activeTabHighlight};
 }
 `;

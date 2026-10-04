@@ -237,7 +237,7 @@ describe('buildQuickCssContent', () => {
         assert.ok(out.includes('YES: Turns every background near-black (near-white on\n          light themes)'));
         assert.ok(out.includes("NO:  Keeps the theme's own background shades"));
         assert.ok(out.includes('YES: Highlights the active tab'));
-        assert.ok(out.includes('NO:  Keeps all tabs uniform'));
+        assert.ok(out.includes('NO:  Plain active tab, without accent color or border'));
         assert.ok(out.includes('YES: Colors the selection and word highlights with the accent'));
         assert.ok(out.includes('NO:  Uses a soft neutral gray for the selection and word\n          highlights'));
         assert.ok(out.includes('YES: Highlights current line and cursor'));

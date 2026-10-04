@@ -308,17 +308,47 @@ describe('generateQuickTheme — pureBlack toggle', () => {
 
 describe('generateQuickTheme — activeTabHighlight toggle', () => {
     it('paints the active tab with accent on "yes"', () => {
-        const parsed = { ...baselineParsed, 'ui.activeTabHighlight': 'yes' };
+        const parsed = { ...baselineParsed, 'ui.accentPrimary': '#4FB4FF', 'ui.activeTabHighlight': 'yes' };
         const out = generateQuickTheme(parsed, noneDirty);
-        assert.equal(out.colors['tab.activeForeground'], '#007ACC');
-        assert.equal(out.colors['tab.activeBorderTop'], '#007ACC');
-        assert.equal(out.colors['tab.activeBorder'], '#007ACC');
+        assert.equal(out.colors['tab.activeForeground'], '#4FB4FF');
+        assert.equal(out.colors['tab.activeBorderTop'], '#4FB4FF');
+        assert.equal(out.colors['tab.activeBorder'], '#4FB4FF');
         assert.ok(out.colors['tab.activeBackground'], 'tab.activeBackground must be tinted');
         assert.notEqual(out.colors['tab.activeBackground'], baselineParsed['ui.baseBackground'],
             'tab.activeBackground must NOT be raw bg — must be tinted');
     });
 
-    it('flattens the active tab to match inactives on "no"', () => {
+    it('pulls an accent label that reads below 4.5:1 toward the text on "yes"', () => {
+        const { contrast } = __testing.colorUtils;
+        const parsed = {
+            ...baselineParsed,
+            'ui.baseBackground': '#FDFBF5',  // Jupiter: gold accent on cream
+            'ui.baseForeground': '#1A1205',
+            'ui.accentPrimary': '#D99815',
+            'ui.activeTabHighlight': 'yes',
+        };
+        const out = generateQuickTheme(parsed, noneDirty, 'light');
+        assert.equal(out.colors['tab.activeBorderTop'], '#D99815', 'the borders keep the accent');
+        for (const [fg, bg] of [['tab.activeForeground', 'tab.activeBackground'],
+            ['tab.unfocusedActiveForeground', 'tab.unfocusedActiveBackground']]) {
+            assert.ok(contrast(out.colors[fg], out.colors[bg]) >= 4.5, `${fg} reads on ${bg}: ${out.colors[fg]}`);
+        }
+        assert.equal(out.colors['tab.activeForeground'], '#8D620F', 'a darker gold, not the text colour');
+    });
+
+    it('pulls the unfocused label too when the 30 % blend reads below 4.5:1', () => {
+        const parsed = {
+            ...baselineParsed,
+            'ui.baseBackground': '#FFFFFF',
+            'ui.baseForeground': '#595959',
+            'ui.accentPrimary': '#FFD54F',
+            'ui.activeTabHighlight': 'yes',
+        };
+        const out = generateQuickTheme(parsed, noneDirty, 'light');
+        assert.equal(out.colors['tab.unfocusedActiveForeground'], '#7F7557', 'the raw blend #8B7E56 reads at 3.96:1');
+    });
+
+    it('keeps a plain active tab on "no"', () => {
         const parsed = { ...baselineParsed, 'ui.activeTabHighlight': 'no' };
         const out = generateQuickTheme(parsed, noneDirty);
         assert.equal(out.colors['tab.activeForeground'], '#D4D4D4');

@@ -299,7 +299,7 @@ describe('Apply pipeline — full integration', function () {
                 'tab.activeBackground must be tinted');
         });
 
-        it('NO flattens the active tab to match inactives', async () => {
+        it('NO keeps a plain active tab', async () => {
             await applyQuick(fakeCtx, buildCss(themeBases, {}, { activeTabHighlight: 'NO' }));
             const c = ourColors();
             assert.equal(c['tab.activeBorderTop'], '#00000000');
@@ -713,9 +713,12 @@ describe('Apply pipeline — covers all 7 ARN themes', function () {
             it('applyQuick honours activeTabHighlight=YES (accent-painted active tab)', async () => {
                 await applyQuick(fakeCtx, buildCss(themeBases, {}, { activeTabHighlight: 'YES' }));
                 const c = cust();
-                assert.equal((c['tab.activeForeground'] || '').toLowerCase(),
-                    themeBases.accent.toLowerCase(),
-                    `${label}: tab.activeForeground must be the theme accent`);
+                const tabLabel = c['tab.activeForeground'] || '';
+                assert.ok(colorUtils.contrast(tabLabel, c['tab.activeBackground']) >= 4.5,
+                    `${label}: tab.activeForeground ${tabLabel} must read at 4.5:1`);
+                assert.equal(tabLabel.toLowerCase(),
+                    colorUtils.readable(themeBases.accent, c['tab.activeBackground'], themeBases.text).toLowerCase(),
+                    `${label}: the accent, pulled toward the text only as far as needed`);
                 assert.equal((c['tab.activeBorderTop'] || '').toLowerCase(),
                     themeBases.accent.toLowerCase(),
                     `${label}: tab.activeBorderTop must be the theme accent`);
