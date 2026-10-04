@@ -344,37 +344,33 @@ describe('generateQuickTheme — vividSelection toggle', () => {
             `selection must use accent prefix, got ${sel}`);
     });
 
-    it('NO selection is clearly visible on dark themes (alpha >= 0x40)', () => {
-        // Visibility floor: anything lighter than 0x40 (~25%) is too faint
-        // to see selected text on Spaceport-class dark themes.
+    // A stronger grey (~33%) washed out the syntax colours under the
+    // selection; word matches stay a step below it.
+    const MATCHES = ['editor.selectionHighlightBackground', 'editor.inactiveSelectionBackground',
+        'editor.wordHighlightBackground', 'editor.wordHighlightStrongBackground'];
+    const alpha = (hex) => parseInt(hex.slice(7), 16);
+
+    it('NO selection is a soft text-coloured grey on dark themes', () => {
         const parsed = { ...baselineParsed, 'ui.vividSelection': 'no' };
-        const out = generateQuickTheme(parsed, noneDirty);
-        const sel = out.colors['editor.selectionBackground'];
-        assert.ok(sel, 'editor.selectionBackground must be set');
-        assert.ok(sel.toUpperCase().startsWith('#D4D4D4'),
-            `muted selection must use text prefix, got ${sel}`);
-        // Last 2 chars are the alpha. Parse and require >= 0x40 (~25%).
-        const alpha = parseInt(sel.slice(-2), 16);
-        assert.ok(alpha >= 0x40,
-            `selection alpha ${sel.slice(-2)} must be >= 0x40 for visibility, got 0x${alpha.toString(16)}`);
+        const out = generateQuickTheme(parsed, noneDirty, 'dark');
+        assert.equal(out.colors['editor.selectionBackground'], '#D4D4D438');
+        for (const key of MATCHES) {
+            assert.ok(alpha(out.colors[key]) < 0x38, `${key} stays below the selection: ${out.colors[key]}`);
+        }
     });
 
-    it('NO selection is clearly visible on Jupiter (light theme)', () => {
-        // Jupiter's text colour is dark; on a near-white bg, the selection
-        // should be a clear mid-grey, not a faint wash.
+    it('NO selection is lighter still on Jupiter (light theme)', () => {
+        // Dark text weighs more on a near-white background.
         const parsed = {
             ...baselineParsed,
             'ui.baseForeground': '#1F2328',  // Jupiter-like dark text
             'ui.vividSelection': 'no',
         };
         const out = generateQuickTheme(parsed, noneDirty, 'light');
-        const sel = out.colors['editor.selectionBackground'];
-        assert.ok(sel, 'editor.selectionBackground must be set');
-        assert.ok(sel.toUpperCase().startsWith('#1F2328'),
-            `Jupiter-style muted selection must use the dark text prefix`);
-        const alpha = parseInt(sel.slice(-2), 16);
-        assert.ok(alpha >= 0x40,
-            `Jupiter selection alpha must be >= 0x40 for visibility, got 0x${alpha.toString(16)}`);
+        assert.equal(out.colors['editor.selectionBackground'], '#1F232826');
+        for (const key of MATCHES) {
+            assert.ok(alpha(out.colors[key]) < 0x26, `${key} stays below the selection: ${out.colors[key]}`);
+        }
     });
 
     it('purges selection overrides on "inherit"', () => {

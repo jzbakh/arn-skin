@@ -174,6 +174,13 @@ describe('Colours the toggles of 1.0.5 wrote', () => {
         assert.equal(light['menu.background'], '#EDEDED');
     });
 
+    it('gives back the strong grey of Vivid-Selection NO', () => {
+        const legacy = t.legacyToggleColors({ 'ui.vividSelection': 'no' }, mars);
+        const text = t.extractBaseColorsFromTheme(mars).text;
+        assert.ok(t.sameColor(legacy['editor.selectionBackground'], `${text}55`));
+        assert.equal(Object.keys(legacy).length, 5);
+    });
+
     it('gives nothing back for a toggle left on INHERIT', () => {
         assert.deepEqual(t.legacyToggleColors({}, mars), {});
     });

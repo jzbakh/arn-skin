@@ -324,16 +324,10 @@ describe('Apply pipeline — full integration', function () {
                 `selection must use accent prefix, got ${sel}`);
         });
 
-        it('NO uses a clearly visible neutral grey (alpha >= 0x40)', async () => {
-            // Visibility floor: anything lighter than 0x40 alpha disappears
-            // into the background on Spaceport-class dark themes.
+        it('NO uses a soft neutral grey that keeps the syntax colours readable', async () => {
             await applyQuick(fakeCtx, buildCss(themeBases, {}, { vividSelection: 'NO' }));
             const sel = ourColors()['editor.selectionBackground'] || '';
-            assert.ok(sel.toUpperCase().startsWith(themeBases.text.toUpperCase()),
-                `NO selection must use text prefix, got ${sel}`);
-            const alpha = parseInt(sel.slice(-2), 16);
-            assert.ok(alpha >= 0x40,
-                `NO selection alpha must be >= 0x40 for visibility, got 0x${alpha.toString(16)}`);
+            assert.equal(sel.toUpperCase(), `${themeBases.text.toUpperCase()}38`);
         });
 
         it('INHERIT purges the selection keys', async () => {

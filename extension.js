@@ -655,10 +655,9 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     //   YES     → saturated accent-coloured selection (~31% opacity) so
     //             selected text pops out. Highlight backgrounds for word
     //             matches and inactive selections scale with it.
-    //   NO      → CLEAR neutral selection: opaque mix of bg and text so
-    //             the selection is obviously visible without colour bias.
-    //             Auto-adapts: lighter mid-grey on dark themes, darker
-    //             mid-grey on light themes (Jupiter).
+    //   NO      → soft neutral selection: the text colour at ~22% opacity
+    //             (~15% on light themes), light enough for the syntax
+    //             colours underneath to stay readable.
     //   INHERIT → leave the keys alone.
     if (vividSelection === 'yes' && accent) {
         colors['editor.selectionBackground'] = A(accent, '50');
@@ -667,16 +666,17 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
         colors['editor.wordHighlightBackground'] = A(accent, '38');
         colors['editor.wordHighlightStrongBackground'] = A(accent, '48');
     } else if (vividSelection === 'no' && text) {
-        // Neutral grey selection at ~33% opacity. On dark themes the light
-        // text gives a clear pale wash; on Jupiter the dark text gives a
-        // crisp grey over white. The companion highlights track the same
-        // alpha curve so word matches stay visible without competing with
-        // the active selection.
-        colors['editor.selectionBackground'] = A(text, '55');
-        colors['editor.selectionHighlightBackground'] = A(text, '30');
-        colors['editor.inactiveSelectionBackground'] = A(text, '38');
-        colors['editor.wordHighlightBackground'] = A(text, '35');
-        colors['editor.wordHighlightStrongBackground'] = A(text, '48');
+        // A stronger grey (~33%) washed out the syntax colours, and hid
+        // Jupiter's gold identifiers. Word matches stay a step below the
+        // selection so they never compete with it.
+        const [sel, match, inactive, word, strongWord] = isLight
+            ? ['26', '18', '1C', '1C', '22']
+            : ['38', '22', '28', '26', '34'];
+        colors['editor.selectionBackground'] = A(text, sel);
+        colors['editor.selectionHighlightBackground'] = A(text, match);
+        colors['editor.inactiveSelectionBackground'] = A(text, inactive);
+        colors['editor.wordHighlightBackground'] = A(text, word);
+        colors['editor.wordHighlightStrongBackground'] = A(text, strongWord);
     }
 
     // ---- Cursor & Active Line Glow
@@ -1291,6 +1291,14 @@ function legacyToggleColors(quick, themeJson) {
         surfaces(L(q['ui.baseBackground'], lift), L(q['ui.secondaryBackground'], lift),
             L(q['ui.secondaryBackground'], light ? -0.07 : 0.5));
     }
+    if (q['ui.vividSelection'] === 'no') {
+        const A = (alpha) => colorUtils.addAlpha(q['ui.baseForeground'], alpha);
+        out['editor.selectionBackground'] = A('55');
+        out['editor.selectionHighlightBackground'] = A('30');
+        out['editor.inactiveSelectionBackground'] = A('38');
+        out['editor.wordHighlightBackground'] = A('35');
+        out['editor.wordHighlightStrongBackground'] = A('48');
+    }
     return out;
 }
 
@@ -1393,8 +1401,9 @@ function buildQuickCssContent(baseValues, toggles) {
      NO:  Keeps the theme's own background shades. */
     --Opt-Pure-Black-Mode:      ${toggles.pureBlack};
 
-  /* YES: Enables accent-colored background for selected text.
-     NO:  Uses a neutral gray selection, tuned for readability. */
+  /* YES: Colors the selection and word highlights with the accent.
+     NO:  Uses a soft neutral gray for the selection and word
+          highlights. */
     --Opt-Vivid-Selection:      ${toggles.vividSelection};
 
   /* YES: Hides all UI borders (panels, tabs, side bar, widgets).
