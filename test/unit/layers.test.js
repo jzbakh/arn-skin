@@ -106,6 +106,37 @@ describe('Quick layer', () => {
     });
 });
 
+describe('Pure-Black YES', () => {
+    const THEMES_DIR = path.join(__dirname, '..', '..', 'themes');
+    const { hexToRgb, rgbToHsl } = t.colorUtils;
+    const hue = (hex) => { const { r, g, b } = hexToRgb(hex); return rgbToHsl(r, g, b).h; };
+    const luminance = (hex) => {
+        const { r, g, b } = hexToRgb(hex);
+        const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    const contrast = (a, b) => {
+        const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+    };
+
+    for (const file of fs.readdirSync(THEMES_DIR).filter(f => f.endsWith('.json'))) {
+        const theme = t.parseJsonc(fs.readFileSync(path.join(THEMES_DIR, file), 'utf8'));
+        const bases = t.extractBaseColorsFromTheme(theme);
+        const light = theme.type === 'vs' || theme.type === 'light';
+
+        it(`deepens ${file} while keeping its hue and its widgets apart`, () => {
+            const colors = t.deriveQuickColors({ ...t.quickDefaults(theme), 'ui.pureBlack': 'yes' }, theme);
+            const editor = colors['editor.background'];
+            const widget = colors['editorWidget.background'];
+            assert.ok(contrast(bases.text, editor) > contrast(bases.text, bases.bg), `${editor} reads stronger than ${bases.bg}`);
+            assert.ok(Math.abs(hue(editor) - hue(bases.bg)) < 0.05, `${editor} keeps the hue of ${bases.bg}`);
+            assert.ok(light ? luminance(widget) < luminance(editor) : luminance(widget) > luminance(editor),
+                `${widget} stands out from ${editor}`);
+        });
+    }
+});
+
 describe('Pure-Black NO', () => {
     const THEMES_DIR = path.join(__dirname, '..', '..', 'themes');
 
@@ -130,6 +161,17 @@ describe('Colours the toggles of 1.0.5 wrote', () => {
         const light = t.legacyToggleColors({ 'ui.pureBlack': 'no' }, jupiter);
         assert.equal(light['editor.background'], '#FAF4E4');
         assert.equal(light['menu.background'], '#EDE6D1');
+    });
+
+    it('gives back the fixed blacks of Pure-Black YES', () => {
+        const dark = t.legacyToggleColors({ 'ui.pureBlack': 'yes' }, mars);
+        assert.equal(dark['editor.background'], '#000000');
+        assert.equal(dark['sideBar.background'], '#050505');
+        assert.equal(dark['menu.background'], '#0A0A0A');
+        assert.ok(dark['quickInputList.focusBackground']);
+        const light = t.legacyToggleColors({ 'ui.pureBlack': 'yes' }, jupiter);
+        assert.equal(light['editor.background'], '#FFFFFF');
+        assert.equal(light['menu.background'], '#EDEDED');
     });
 
     it('gives nothing back for a toggle left on INHERIT', () => {

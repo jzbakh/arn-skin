@@ -590,26 +590,26 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
         BORDER_KEYS.forEach(k => { colors[k] = borderFinal; });
     }
 
-    // ---- Pure Black Mode (OLED-friendly maximum contrast)
-    //   YES     → push every background to the extreme of the theme's
-    //             polarity: pure black on dark themes (#000000 for the
-    //             editor, near-black for panels/menus/widgets), pure
-    //             white on light themes. Maximises code-area readability
-    //             and saves OLED battery on dark themes.
+    // ---- Pure Black Mode (near-black backgrounds)
+    //   YES     → darken the code area and side panels halfway to black
+    //             (to white on light themes), and the widgets less so they
+    //             stand out from the editor. The theme keeps its hue —
+    //             Nebula stays violet-black, Mars warm.
     //   NO      → keep the theme's own backgrounds: nothing is written,
     //             as with INHERIT.
     //   INHERIT → leave the keys alone.
-    if (pureBlack === 'yes') {
-        const primary = isLight ? '#FFFFFF' : '#000000';
-        const secondary = isLight ? '#F5F5F5' : '#050505';
-        const lift = isLight ? '#EDEDED' : '#0A0A0A';
-        // Code-area surfaces — pure extreme.
+    if (pureBlack === 'yes' && bg && bgSec) {
+        const extreme = isLight ? '#FFFFFF' : '#000000';
+        const primary = M(bg, extreme, 0.5);
+        const secondary = M(bgSec, extreme, 0.5);
+        const lift = M(surfaceElevated || bgSec, extreme, 0.3);
+        // Code-area surfaces.
         colors['editor.background'] = primary;
         colors['terminal.background'] = primary;
         colors['breadcrumb.background'] = primary;
         colors['panel.background'] = primary;
         colors['tab.activeBackground'] = primary;
-        // Side panels — slightly differentiated from primary.
+        // Side panels.
         colors['sideBar.background'] = secondary;
         colors['activityBar.background'] = secondary;
         colors['statusBar.background'] = secondary;
@@ -617,7 +617,7 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
         colors['titleBar.inactiveBackground'] = secondary;
         colors['editorGroupHeader.tabsBackground'] = secondary;
         colors['tab.inactiveBackground'] = secondary;
-        // Floating widgets / menus — lifted enough to read against pure-black.
+        // Floating widgets / menus — darkened less, to stand out from the editor.
         colors['editorWidget.background'] = lift;
         colors['editorHoverWidget.background'] = lift;
         colors['editorSuggestWidget.background'] = lift;
@@ -1276,7 +1276,11 @@ function legacyToggleColors(quick, themeJson) {
             'dropdown.background', 'quickInput.background', 'menu.background', 'notifications.background',
             'input.background'], widgets);
     };
-    if (q['ui.pureBlack'] === 'no') {
+    if (q['ui.pureBlack'] === 'yes') {
+        surfaces(light ? '#FFFFFF' : '#000000', light ? '#F5F5F5' : '#050505', light ? '#EDEDED' : '#0A0A0A');
+        out['quickInputList.focusBackground'] = colorUtils.mix(light ? '#EDEDED' : '#0A0A0A',
+            q['ui.accentPrimary'] || '#888888', 0.15);
+    } else if (q['ui.pureBlack'] === 'no') {
         const lift = light ? -0.04 : 0.03;
         surfaces(L(q['ui.baseBackground'], lift), L(q['ui.secondaryBackground'], lift),
             L(q['ui.secondaryBackground'], light ? -0.07 : 0.5));
@@ -1378,7 +1382,8 @@ function buildQuickCssContent(baseValues, toggles) {
      NO:  Removes the line highlight entirely. */
     --Opt-Cursor-Line-Glow:     ${toggles.cursorLineGlow};
 
-  /* YES: Enables maximum-contrast surfaces.
+  /* YES: Turns every background near-black (near-white on
+          light themes).
      NO:  Keeps the theme's own background shades. */
     --Opt-Pure-Black-Mode:      ${toggles.pureBlack};
 

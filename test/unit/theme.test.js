@@ -248,37 +248,44 @@ describe('generateQuickTheme — borderless toggle', () => {
 });
 
 describe('generateQuickTheme — pureBlack toggle', () => {
-    it('forces editor.background to pure black on dark themes when "yes"', () => {
+    it('darkens the code area halfway to black on dark themes when "yes"', () => {
         const parsed = { ...baselineParsed, 'ui.pureBlack': 'yes' };
         const out = generateQuickTheme(parsed, noneDirty, 'dark');
-        assert.equal(out.colors['editor.background'], '#000000');
-        assert.equal(out.colors['terminal.background'], '#000000');
-        assert.equal(out.colors['panel.background'], '#000000');
+        assert.equal(out.colors['editor.background'], '#0F0F0F');
+        assert.equal(out.colors['terminal.background'], '#0F0F0F');
+        assert.equal(out.colors['panel.background'], '#0F0F0F');
     });
 
-    it('forces editor.background to pure white on light themes when "yes"', () => {
-        const parsed = { ...baselineParsed, 'ui.pureBlack': 'yes' };
+    it('brightens the code area halfway to white on light themes when "yes"', () => {
+        const parsed = {
+            ...baselineParsed,
+            'ui.baseBackground': '#FDFBF5',
+            'ui.secondaryBackground': '#F7F4EB',
+            'ui.surfaceElevated': '#F4EAD1',
+            'ui.pureBlack': 'yes',
+        };
         const out = generateQuickTheme(parsed, noneDirty, 'light');
-        assert.equal(out.colors['editor.background'], '#FFFFFF');
-        assert.equal(out.colors['terminal.background'], '#FFFFFF');
+        assert.equal(out.colors['editor.background'], '#FEFDFA');
+        assert.equal(out.colors['sideBar.background'], '#FBFAF5');
+        assert.equal(out.colors['menu.background'], '#F7F0DF');
     });
 
-    it('makes side panels near-black (slightly differentiated from primary) on dark "yes"', () => {
+    it('darkens the side panels from the secondary background on dark "yes"', () => {
         const parsed = { ...baselineParsed, 'ui.pureBlack': 'yes' };
         const out = generateQuickTheme(parsed, noneDirty, 'dark');
-        assert.equal(out.colors['sideBar.background'], '#050505');
-        assert.equal(out.colors['activityBar.background'], '#050505');
-        assert.equal(out.colors['statusBar.background'], '#050505');
-        assert.equal(out.colors['titleBar.activeBackground'], '#050505');
+        assert.equal(out.colors['sideBar.background'], '#131313');
+        assert.equal(out.colors['activityBar.background'], '#131313');
+        assert.equal(out.colors['statusBar.background'], '#131313');
+        assert.equal(out.colors['titleBar.activeBackground'], '#131313');
     });
 
-    it('lifts widget backgrounds to be readable against pure black', () => {
+    it('darkens the widgets less, so they stand out from the editor', () => {
         const parsed = { ...baselineParsed, 'ui.pureBlack': 'yes' };
         const out = generateQuickTheme(parsed, noneDirty, 'dark');
-        assert.equal(out.colors['editorWidget.background'], '#0A0A0A');
-        assert.equal(out.colors['menu.background'], '#0A0A0A');
-        assert.equal(out.colors['notifications.background'], '#0A0A0A');
-        assert.equal(out.colors['input.background'], '#0A0A0A');
+        assert.equal(out.colors['editorWidget.background'], '#1F1F22');
+        assert.equal(out.colors['menu.background'], '#1F1F22');
+        assert.equal(out.colors['notifications.background'], '#1F1F22');
+        assert.equal(out.colors['input.background'], '#1F1F22');
     });
 
     it('keeps the theme backgrounds when "no"', () => {

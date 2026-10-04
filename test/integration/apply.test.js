@@ -25,7 +25,7 @@ const { snapshotCustomizations, restoreCustomizations, clearCustomizations } = r
 
 const {
     applyQuick, applyAdvancedUI, applyAdvancedSyntax, resetTheme,
-    parseJsonc, extractBaseColorsFromTheme,
+    parseJsonc, extractBaseColorsFromTheme, colorUtils,
     closeCustomisationFilesForTheme, closeOtherCustomisationFilesForTheme,
     ensureQuickFile, ensureAdvancedUIFile, ensureAdvancedSyntaxFile,
 } = __testing;
@@ -256,15 +256,16 @@ describe('Apply pipeline — full integration', function () {
     });
 
     describe('applyQuick — Pure-Black-Mode toggle', () => {
-        it('YES forces editor.background to pure black on a dark ARN theme', async () => {
+        it('YES darkens the backgrounds of a dark ARN theme toward black', async () => {
             await applyQuick(fakeCtx, buildCss(themeBases, {}, { pureBlack: 'YES' }));
             const c = ourColors();
-            assert.equal(c['editor.background'], '#000000');
-            assert.equal(c['terminal.background'], '#000000');
-            assert.equal(c['panel.background'], '#000000');
-            assert.equal(c['sideBar.background'], '#050505');
-            assert.equal(c['menu.background'], '#0A0A0A');
-            assert.equal(c['editorWidget.background'], '#0A0A0A');
+            const deep = (hex, ratio) => colorUtils.mix(hex, '#000000', ratio);
+            assert.equal(c['editor.background'], deep(themeBases.bg, 0.5));
+            assert.equal(c['terminal.background'], deep(themeBases.bg, 0.5));
+            assert.equal(c['panel.background'], deep(themeBases.bg, 0.5));
+            assert.equal(c['sideBar.background'], deep(themeBases.bgSec, 0.5));
+            assert.equal(c['menu.background'], deep(themeBases.surfaceElevated, 0.3));
+            assert.equal(c['editorWidget.background'], deep(themeBases.surfaceElevated, 0.3));
         });
 
         it('NO leaves the theme backgrounds in place', async () => {
@@ -276,7 +277,7 @@ describe('Apply pipeline — full integration', function () {
 
         it('INHERIT after YES purges every Pure-Black surface key', async () => {
             await applyQuick(fakeCtx, buildCss(themeBases, {}, { pureBlack: 'YES' }));
-            assert.equal(ourColors()['editor.background'], '#000000');
+            assert.ok(ourColors()['editor.background'], 'precondition: YES wrote the editor background');
             await applyQuick(fakeCtx, buildCss(themeBases, {}, { pureBlack: 'INHERIT' }));
             assert.equal(ourColors()['editor.background'], undefined);
             assert.equal(ourColors()['menu.background'], undefined);
@@ -728,8 +729,9 @@ describe('Apply pipeline — covers all 7 ARN themes', function () {
 
             it('applyQuick honours pureBlack=YES (theme-polarity-aware)', async () => {
                 await applyQuick(fakeCtx, buildCss(themeBases, {}, { pureBlack: 'YES' }));
-                const expectedBg = (themeJson.type === 'light' || themeJson.type === 'vs')
+                const extreme = (themeJson.type === 'light' || themeJson.type === 'vs')
                     ? '#FFFFFF' : '#000000';
+                const expectedBg = colorUtils.mix(themeBases.bg, extreme, 0.5);
                 assert.equal(cust()['editor.background'], expectedBg,
                     `${label}: editor.background must be ${expectedBg} when Pure-Black-Mode=YES`);
             });
