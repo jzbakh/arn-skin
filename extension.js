@@ -1,3 +1,4 @@
+const os = require('node:os');
 const vscode = require('vscode');
 
 // =========================================================================
@@ -1636,16 +1637,13 @@ function legacyPureBlackSurfaces(quick, themeJson) {
 // wrote the whole theme into them, and the Quick file alone held the toggles.
 // The layers are rebuilt from both so the colours on screen do not change,
 // except those an older version derived: they follow the derivation as it is
-// now.
-async function loadThemeState(context, themeLabel, themeJson) {
-    const stored = readStoredState(themeLabel);
-    if (stored) return stored;
-
+// now. Null when earlier versions left nothing for this theme.
+async function legacyState(context, themeLabel, themeJson) {
     const sel = themeSelector(themeLabel);
     const cc = globalEntries('workbench', 'colorCustomizations')[sel];
     const tc = globalEntries('editor', 'tokenColorCustomizations')[sel];
     const sc = globalEntries('editor', 'semanticTokenColorCustomizations')[sel];
-    if (!cc && !tc && !sc) return {};
+    if (!cc && !tc && !sc) return null;
 
     let quick = {};
     const quickText = await readTextIfExists(quickUriFor(context, themeLabel));
@@ -1653,7 +1651,7 @@ async function loadThemeState(context, themeLabel, themeJson) {
         quick = compactQuick(resolveQuickInput(quickText, quickDefaults(themeJson)).quick, themeJson);
     }
     const derived = deriveQuickColors(expandQuick(quick, themeJson), themeJson);
-    const state = compactState({
+    return compactState({
         quick,
         ui: dropThemeValues([legacyToggleColors(quick, themeJson), legacyBaseColors(quick, themeJson), legacyPureBlackSurfaces(quick, themeJson)]
             .reduce(diffColors, diffColors(cc, { ...(themeJson.colors || {}), ...derived })),
@@ -1661,6 +1659,13 @@ async function loadThemeState(context, themeLabel, themeJson) {
         semantic: diffSemantic({ ...(tc && tc.semanticTokenColors), ...(sc && sc.rules) }, themeJson.semanticTokenColors),
         textMate: diffTextMate(tc && tc.textMateRules, themeJson.tokenColors),
     });
+}
+
+async function loadThemeState(context, themeLabel, themeJson) {
+    const stored = readStoredState(themeLabel);
+    if (stored) return stored;
+    const state = await legacyState(context, themeLabel, themeJson);
+    if (!state) return {};
     await saveThemeState(themeLabel, themeJson, state);
     return state;
 }
@@ -2323,6 +2328,404 @@ function planNotice(previous, rejected, now) {
 }
 
 // =========================================================================
+// EXPORT / IMPORT — one portable JSON backup of every ARN-Skin customisation
+// A backup holds each theme's state as settings keep it: what the user
+// changed, never a copy of the theme. Import goes back through the layers, so
+// a backup follows theme updates and survives publisher, label and IDE-fork
+// changes.
+// =========================================================================
+
+const BACKUP_FORMAT = 'arn-skin-backup';
+const BACKUP_SCHEMA_VERSION = 1;
+
+// Imported files are untrusted. Caps sit well above real themes (~480 UI
+// keys, ~900 TextMate rules).
+const BACKUP_LIMITS = {
+    maxRawBytes:       8 * 1024 * 1024,   // whole file, checked before reading it
+    maxThemes:         64,
+    maxColorKeys:      4000,              // per theme
+    maxSemanticTokens: 4000,              // per theme
+    maxTextMateRules:  8000,              // per theme
+    maxLabelLen:       200,
+    maxKeyLen:         256,
+    maxScopeLen:       2048,              // a scope selector or a rule name
+    maxScopesPerRule:  256,
+    maxStyleLen:       64,
+};
+
+const COLOR_KEY_RE = /^[A-Za-z0-9._-]+$/;
+const TOKEN_KEY_RE = /^[A-Za-z0-9._*:-]+$/;
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+const STYLE_BOOL_KEYS = new Set(['bold', 'italic', 'underline', 'strikethrough']);
+const QUICK_KEY_KINDS = new Map([
+    ...QUICK_BASES.map(([key]) => [key, 'color']),
+    ...QUICK_TOGGLES.map(([key]) => [key, 'toggle']),
+]);
+
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const isHex = (v) => typeof v === 'string' && HEX_COLOR_RE.test(v);
+const badKey = (k, re) => k.length > BACKUP_LIMITS.maxKeyLen || UNSAFE_KEYS.has(k) || !re.test(k);
+
+// Notifications render [text](link) as a link, command: links included, so
+// nothing read from a file may form one there.
+const plainText = (s) => String(s).replace(/[[\]]/g, '');
+const quoted = (k) => `"${plainText(String(k).slice(0, 40))}"`;
+
+// A label is shown in the import confirmation: one line, read as written.
+const unsafeLabel = (label) => [...label].some(ch => {
+    const c = ch.codePointAt(0);
+    return c < 0x20 || (c >= 0x7F && c <= 0x9F) || c === 0x2028 || c === 0x2029
+        || (c >= 0x202A && c <= 0x202E) || (c >= 0x2066 && c <= 0x2069);
+});
+
+function semanticPropError(k, v, where) {
+    if (k === 'foreground' || k === 'background') return isHex(v) ? null : `${where}.${k} is not a hex value`;
+    if (k === 'fontStyle') return typeof v === 'string' && v.length <= BACKUP_LIMITS.maxStyleLen ? null : `${where}.fontStyle is invalid`;
+    if (STYLE_BOOL_KEYS.has(k)) return typeof v === 'boolean' ? null : `${where}.${k} must be a boolean`;
+    return `${where}: unexpected key ${quoted(k)}`;
+}
+
+function validateSemanticValue(v, where) {
+    if (typeof v === 'string') return isHex(v) ? null : `${where} is not a hex value`;
+    if (!isPlainObject(v)) return `${where} must be a hex string or settings object`;
+    for (const [k, value] of Object.entries(v)) {
+        const err = semanticPropError(k, value, where);
+        if (err) return err;
+    }
+    return null;
+}
+
+const TEXTMATE_RULE_KEYS = new Set(['name', 'scope', 'settings']);
+
+// What a rule applies to: without a valid name and scope the rule is not one.
+function textMateTargetError(rule, where) {
+    const L = BACKUP_LIMITS;
+    if (rule.name !== undefined && (typeof rule.name !== 'string' || rule.name.length > L.maxScopeLen)) {
+        return `${where}.name is invalid`;
+    }
+    if (rule.scope !== undefined) {
+        const scopes = Array.isArray(rule.scope) ? rule.scope : [rule.scope];
+        if (scopes.length > L.maxScopesPerRule) return `${where}.scope has too many entries`;
+        for (const s of scopes) {
+            if (typeof s !== 'string' || s.length > L.maxScopeLen) return `${where}.scope has an invalid entry`;
+        }
+    }
+    if (!isPlainObject(rule.settings)) return `${where}.settings must be an object`;
+    return null;
+}
+
+function textMateSettingError(k, v, where) {
+    if (k === 'foreground' || k === 'background') return isHex(v) ? null : `${where}.settings.${k} is not a hex value`;
+    if (k === 'fontStyle') return typeof v === 'string' && v.length <= BACKUP_LIMITS.maxStyleLen ? null : `${where}.settings.fontStyle is invalid`;
+    return `${where}.settings: unexpected key ${quoted(k)}`;
+}
+
+function validateTextMateRule(rule, where) {
+    if (!isPlainObject(rule)) return `${where} must be an object`;
+    for (const k of Object.keys(rule)) {
+        if (!TEXTMATE_RULE_KEYS.has(k)) return `${where}: unexpected key ${quoted(k)}`;
+    }
+    const target = textMateTargetError(rule, where);
+    if (target) return target;
+    for (const [k, v] of Object.entries(rule.settings)) {
+        const err = textMateSettingError(k, v, where);
+        if (err) return err;
+    }
+    return null;
+}
+
+// What import accepts of a semantic style, or undefined when nothing is left.
+function pruneSemanticValue(v, where, leftOut) {
+    const err = validateSemanticValue(v, where);
+    if (!err) return v;
+    if (!isPlainObject(v)) {
+        leftOut.push(err);
+        return undefined;
+    }
+    const kept = {};
+    for (const [k, value] of Object.entries(v)) {
+        const propErr = semanticPropError(k, value, where);
+        if (propErr) leftOut.push(propErr);
+        else kept[k] = value;
+    }
+    return Object.keys(kept).length ? kept : undefined;
+}
+
+// What import accepts of a TextMate rule, or undefined when it no longer
+// applies to anything or sets nothing.
+function pruneTextMateRule(rule, where, leftOut) {
+    if (!isPlainObject(rule)) {
+        leftOut.push(`${where} must be an object`);
+        return undefined;
+    }
+    const target = textMateTargetError(rule, where);
+    if (target) {
+        leftOut.push(target);
+        return undefined;
+    }
+    for (const k of Object.keys(rule)) {
+        if (!TEXTMATE_RULE_KEYS.has(k)) leftOut.push(`${where}: unexpected key ${quoted(k)}`);
+    }
+    const settings = {};
+    for (const [k, v] of Object.entries(rule.settings)) {
+        const err = textMateSettingError(k, v, where);
+        if (err) leftOut.push(err);
+        else settings[k] = v;
+    }
+    if (Object.keys(settings).length === 0 && Object.keys(rule.settings).length > 0) return undefined;
+    const kept = {};
+    if (rule.name !== undefined) kept.name = rule.name;
+    if (rule.scope !== undefined) kept.scope = rule.scope;
+    kept.settings = settings;
+    return kept;
+}
+
+// Per layer: its container and limit, the error of one entry so import can
+// reject a whole file, and what of one entry a backup can keep.
+const LAYERS = new Map([
+    ['quick', {
+        kind: 'object',
+        entry: (key, value, where) => {
+            const kind = QUICK_KEY_KINDS.get(key);
+            if (!kind) return `${where}: unexpected Quick key ${quoted(key)}`;
+            return (kind === 'color' ? isHex(value) : TOGGLE_VALUES.has(value)) ? null : `${where}: quick.${key} is invalid`;
+        },
+    }],
+    ['ui', {
+        kind: 'object',
+        limit: ['maxColorKeys', 'color keys'],
+        entry: (key, value, where) => {
+            if (badKey(key, COLOR_KEY_RE)) return `${where}: invalid color key ${quoted(key)}`;
+            return isHex(value) ? null : `${where}: color "${key}" is not a hex value`;
+        },
+    }],
+    ['semantic', {
+        kind: 'object',
+        limit: ['maxSemanticTokens', 'semantic tokens'],
+        entry: (key, value, where) => badKey(key, TOKEN_KEY_RE)
+            ? `${where}: invalid semantic token ${quoted(key)}`
+            : validateSemanticValue(value, `${where}: semantic.${key}`),
+        prune: (key, value, where, leftOut) => {
+            if (!badKey(key, TOKEN_KEY_RE)) return pruneSemanticValue(value, `${where}: semantic.${key}`, leftOut);
+            leftOut.push(`${where}: invalid semantic token ${quoted(key)}`);
+            return undefined;
+        },
+    }],
+    ['textMate', {
+        kind: 'array',
+        limit: ['maxTextMateRules', 'TextMate rules'],
+        entry: (index, rule, where) => validateTextMateRule(rule, `${where}: textMate[${index}]`),
+        prune: (index, rule, where, leftOut) => pruneTextMateRule(rule, `${where}: textMate[${index}]`, leftOut),
+    }],
+]);
+
+const layerEntries = (layer, value) => (layer.kind === 'array' ? value.map((v, i) => [i, v]) : Object.entries(value));
+
+// The first error of a layer, or null.
+function layerError(key, value, where) {
+    const layer = LAYERS.get(key);
+    if (layer.kind === 'array' ? !Array.isArray(value) : !isPlainObject(value)) {
+        return `${where}: ${key} must be an ${layer.kind}`;
+    }
+    const entries = layerEntries(layer, value);
+    if (layer.limit && entries.length > BACKUP_LIMITS[layer.limit[0]]) return `${where}: too many ${layer.limit[1]}`;
+    for (const [k, v] of entries) {
+        const err = layer.entry(k, v, where);
+        if (err) return err;
+    }
+    return null;
+}
+
+// The derivations read #RRGGBB(AA) only, as the Quick file is parsed.
+function normalizeLayer(key, value) {
+    if (key === 'semantic') return normalizeSemantic(value);
+    if (key !== 'quick') return value;
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = QUICK_KEY_KINDS.get(k) === 'color' ? colorUtils.normalizeHex(v) : v;
+    return out;
+}
+
+// Security boundary: anything off-schema is rejected, never dropped, so import
+// can only write known keys with valid values. Errors name themes by position:
+// a label could carry a link.
+function validateImportBundle(obj) {
+    const L = BACKUP_LIMITS;
+    if (!isPlainObject(obj)) return { ok: false, error: 'not an object' };
+    if (obj.format !== BACKUP_FORMAT) return { ok: false, error: 'unrecognized file (missing arn-skin-backup marker)' };
+    if (!Number.isInteger(obj.schemaVersion) || obj.schemaVersion < 1) return { ok: false, error: 'invalid schemaVersion' };
+    if (obj.schemaVersion > BACKUP_SCHEMA_VERSION) return { ok: false, error: `made by a newer ARN-Skin (schemaVersion ${obj.schemaVersion})` };
+    if (!Array.isArray(obj.themes)) return { ok: false, error: 'themes is not an array' };
+    if (obj.themes.length > L.maxThemes) return { ok: false, error: `too many themes (${obj.themes.length})` };
+
+    const themes = [];
+    const seen = new Map();
+    for (let i = 0; i < obj.themes.length; i++) {
+        const t = obj.themes[i];
+        const where = `theme #${i + 1}`;
+        if (!isPlainObject(t)) return { ok: false, error: `${where}: not an object` };
+        if (typeof t.label !== 'string' || !t.label.startsWith('Arn') || unsafeLabel(t.label)) {
+            return { ok: false, error: `${where}: label must be an ARN-Skin theme label` };
+        }
+        if (t.label.length > L.maxLabelLen) return { ok: false, error: `${where}: label too long` };
+        if (seen.has(t.label)) return { ok: false, error: `${where}: same theme as theme #${seen.get(t.label) + 1}` };
+        seen.set(t.label, i);
+
+        const state = {};
+        for (const [key, value] of Object.entries(t)) {
+            if (key === 'label') continue;
+            if (!LAYERS.has(key)) return { ok: false, error: `${where}: unexpected key ${quoted(key)}` };
+            if (value == null) continue;
+            const err = layerError(key, value, where);
+            if (err) return { ok: false, error: err };
+            state[key] = normalizeLayer(key, value);
+        }
+        const compact = compactState(state);
+        if (Object.keys(compact).length) themes.push({ label: t.label, state: compact });
+    }
+
+    if (themes.length === 0) return { ok: false, error: 'backup contains no customizations' };
+    return {
+        ok: true,
+        bundle: { activeTheme: typeof obj.activeTheme === 'string' ? obj.activeTheme : null, themes },
+    };
+}
+
+// The editors keep keys and properties VS Code ignores (a typo, a "comment"
+// on a TextMate rule) and 1.0.5 kept anything. A backup leaves out just those
+// rather than refuse every theme, and says where they were.
+function pruneForBackup(label, state) {
+    const kept = {};
+    const leftOut = [];
+    for (const [key, value] of Object.entries(state)) {
+        const layer = LAYERS.get(key);
+        if (!layer || value == null) continue;
+        if (layer.kind === 'array' ? !Array.isArray(value) : !isPlainObject(value)) {
+            leftOut.push(`${label}: ${key}`);
+            continue;
+        }
+        const entries = [];
+        for (const [k, v] of layerEntries(layer, value)) {
+            if (layer.prune) {
+                const pruned = layer.prune(k, v, label, leftOut);
+                if (pruned !== undefined) entries.push([k, pruned]);
+                continue;
+            }
+            const err = layer.entry(k, v, label);
+            if (err) leftOut.push(err);
+            else entries.push([k, v]);
+        }
+        kept[key] = layer.kind === 'array' ? entries.map(([, v]) => v) : Object.fromEntries(entries);
+    }
+    return { state: compactState(kept), leftOut };
+}
+
+function assembleBundle({ extensionVersion, activeTheme, exportedAt, themes }) {
+    return {
+        format: BACKUP_FORMAT,
+        schemaVersion: BACKUP_SCHEMA_VERSION,
+        extensionVersion: extensionVersion || null,
+        exportedAt: exportedAt || null,
+        activeTheme: activeTheme || null,
+        themes: themes.map(({ label, state }) => ({ label, ...state })),
+    };
+}
+
+// Every ARN theme with customisations, as its state: the stored record, or
+// what an earlier version's settings rebuild into.
+async function collectExportState(context) {
+    const pkg = await readPackageJson(context);
+    const themes = [];
+    for (const { label } of pkg.contributes.themes) {
+        if (typeof label !== 'string' || !label.startsWith('Arn')) continue;
+        let state = readStoredState(label);
+        if (!state) {
+            const theme = await getThemeData(context, label);
+            state = theme && await legacyState(context, label, theme.themeJson);
+        }
+        if (state && Object.keys(state).length) themes.push({ label, state });
+    }
+    return { pkg, themes };
+}
+
+// What a backup would hold now, and where something had to be left out.
+async function prepareExport(context) {
+    const { pkg, themes: collected } = await collectExportState(context);
+    const themes = [];
+    const leftOut = [];
+    for (const { label, state } of collected) {
+        const pruned = pruneForBackup(label, state);
+        leftOut.push(...pruned.leftOut.map(error => ({ label, error })));
+        if (Object.keys(pruned.state).length) themes.push({ label, state: pruned.state });
+    }
+    return { pkg, themes, leftOut };
+}
+
+async function exportCustomizationsToUri(context, targetUri, exportedAt) {
+    const { pkg, themes, leftOut } = await prepareExport(context);
+    if (themes.length === 0) return { written: false, count: 0, leftOut };
+
+    const bundle = assembleBundle({
+        extensionVersion: pkg.version,
+        activeTheme: vscode.workspace.getConfiguration('workbench').get('colorTheme') || null,
+        exportedAt,
+        themes,
+    });
+    // Only a limit can still fail here, and a backup that would not import
+    // back is not written.
+    const check = validateImportBundle(bundle);
+    if (!check.ok) throw new Error(check.error);
+    await vscode.workspace.fs.writeFile(targetUri, new TextEncoder().encode(JSON.stringify(bundle, null, 2) + '\n'));
+    return { written: true, count: themes.length, leftOut };
+}
+
+async function readBackupFromUri(uri) {
+    let size;
+    try {
+        size = (await vscode.workspace.fs.stat(uri)).size;
+    } catch {
+        return { ok: false, error: 'cannot read file' };
+    }
+    if (size > BACKUP_LIMITS.maxRawBytes) return { ok: false, error: `file too large (${size} bytes)` };
+    let buf;
+    try {
+        buf = await vscode.workspace.fs.readFile(uri);
+    } catch {
+        return { ok: false, error: 'cannot read file' };
+    }
+    // The file can grow between the two reads.
+    if (buf.byteLength > BACKUP_LIMITS.maxRawBytes) {
+        return { ok: false, error: `file too large (${buf.byteLength} bytes)` };
+    }
+    let obj;
+    try {
+        obj = JSON.parse(new TextDecoder().decode(buf));
+    } catch {
+        return { ok: false, error: 'not valid JSON' };
+    }
+    return validateImportBundle(obj);
+}
+
+// Each theme is replaced as a whole, as Reset then the same edits would: its
+// open files are closed, its state and outputs rewritten, and its editing
+// files deleted so the next open renders them from the imported state.
+async function importThemes(context, themes, skipReapplySet) {
+    const imported = [];
+    for (const { label, state } of themes) {
+        const theme = await getThemeData(context, label);
+        if (!theme) continue;
+        await closeCustomisationFilesForTheme(label, skipReapplySet);
+        await saveThemeState(label, theme.themeJson, state);
+        for (const uri of [quickUriFor(context, label), advancedUIUriFor(context, label), advancedSyntaxUriFor(context, label)]) {
+            try {
+                await vscode.workspace.fs.delete(uri);
+            } catch { /* never opened */ }
+        }
+        imported.push(label);
+    }
+    return imported;
+}
+
+// =========================================================================
 // ACTIVATE
 // =========================================================================
 
@@ -2378,7 +2781,7 @@ function activate(context) {
         notices.set(fileKey, next);
         if (announce.length === 0) return;
         const more = announce.length > 1 ? ` (+${announce.length - 1} more)` : '';
-        vscode.window.showWarningMessage(`ARN-Skin: ${summarizeRejected(announce[0])}${more}`);
+        vscode.window.showWarningMessage(`ARN-Skin: ${plainText(summarizeRejected(announce[0]))}${more}`);
     };
 
     // The same rejections, underlined where they are written, with the kept
@@ -2650,11 +3053,23 @@ function activate(context) {
                 });
             }
 
-            options.push({
-                label: `✨ Change Theme`,
-                action: 'changeTheme',
-                description: 'Quickly switch between ARN-Skin themes'
-            });
+            options.push(
+                {
+                    label: `💾 Export Customizations…`,
+                    action: 'export',
+                    description: 'Save all ARN-Skin customizations to a portable backup file'
+                },
+                {
+                    label: `📥 Import Customizations…`,
+                    action: 'import',
+                    description: 'Restore customizations from a backup file (overwrites current)'
+                },
+                {
+                    label: `✨ Change Theme`,
+                    action: 'changeTheme',
+                    description: 'Quickly switch between ARN-Skin themes'
+                }
+            );
 
             const choice = await vscode.window.showQuickPick(options, {
                 placeHolder: "Theme Management: " + themeLabel
@@ -2725,6 +3140,11 @@ function activate(context) {
                 return;
             }
 
+            if (choice.action === 'export' || choice.action === 'import') {
+                await vscode.commands.executeCommand(`arn.${choice.action}Customizations`);
+                return;
+            }
+
             if (choice.action === 'changeTheme') {
                 try {
                     // Menu order follows package.json declaration order.
@@ -2754,6 +3174,99 @@ function activate(context) {
                     console.error('[ARN]', err);
                 }
                 return;
+            }
+        })
+    );
+
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+    const themesOf = (leftOut) => [...new Set(leftOut.map(l => l.label))].join(', ');
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('arn.exportCustomizations', async () => {
+            try {
+                // The backup holds every keystroke typed so far.
+                for (const key of [...pendingApplies.keys()]) flushPendingApply(key);
+                const ready = await enqueue(() => prepareExport(context));
+                if (ready.themes.length === 0) {
+                    if (ready.leftOut.length) {
+                        vscode.window.showWarningMessage(
+                            `ARN-Skin: nothing to export. The customizations of ${themesOf(ready.leftOut)} are all invalid values.`);
+                    } else {
+                        vscode.window.showInformationMessage('ARN-Skin: no customizations to export.');
+                    }
+                    return;
+                }
+
+                const target = await vscode.window.showSaveDialog({
+                    title: 'Export ARN-Skin Customizations',
+                    defaultUri: vscode.Uri.joinPath(vscode.Uri.file(os.homedir()), 'arn-skin-backup.json'),
+                    filters: { 'ARN-Skin Backup': ['json'] },
+                    saveLabel: 'Export',
+                });
+                if (!target) return;
+
+                const { written, count, leftOut } = await enqueue(() => exportCustomizationsToUri(context, target, new Date().toISOString()));
+                if (!written) {
+                    vscode.window.showInformationMessage('ARN-Skin: no customizations to export.');
+                    return;
+                }
+                const name = target.path.split('/').pop();
+                if (leftOut.length) {
+                    vscode.window.showWarningMessage(
+                        `ARN-Skin: exported ${plural(count, 'theme')} to ${name}, without ${plural(leftOut.length, 'invalid value')} in ${themesOf(leftOut)}.`);
+                } else {
+                    vscode.window.showInformationMessage(`ARN-Skin: exported ${plural(count, 'theme')} to ${name}.`);
+                }
+            } catch (err) {
+                vscode.window.showErrorMessage('ARN-Skin: export failed — ' + (err && err.message ? err.message : String(err)));
+                console.error('[ARN]', err);
+            }
+        }),
+
+        vscode.commands.registerCommand('arn.importCustomizations', async () => {
+            try {
+                const picked = await vscode.window.showOpenDialog({
+                    title: 'Import ARN-Skin Customizations',
+                    canSelectMany: false,
+                    filters: { 'ARN-Skin Backup': ['json'] },
+                    openLabel: 'Import',
+                });
+                if (!picked || picked.length === 0) return;
+
+                const result = await readBackupFromUri(picked[0]);
+                if (!result.ok) {
+                    vscode.window.showErrorMessage('ARN-Skin: invalid backup — ' + result.error + '.');
+                    return;
+                }
+                const shipped = new Set((await readPackageJson(context)).contributes.themes.map(t => t.label));
+                const themes = result.bundle.themes.filter(t => shipped.has(t.label));
+                const missing = result.bundle.themes.filter(t => !shipped.has(t.label)).map(t => t.label);
+                if (themes.length === 0) {
+                    vscode.window.showWarningMessage('ARN-Skin: none of the themes in this backup is in this version.');
+                    return;
+                }
+
+                const confirm = await vscode.window.showWarningMessage(
+                    'Import ARN-Skin customizations from this backup?',
+                    {
+                        modal: true,
+                        detail:
+                            `This overwrites your current customizations for ${plural(themes.length, 'theme')}:\n` +
+                            themes.map(t => t.label).join('\n') +
+                            (missing.length ? `\n\nNot in this version, skipped:\n${missing.join('\n')}` : '') +
+                            '\n\nThis cannot be undone.',
+                    },
+                    'Import'
+                );
+                if (confirm !== 'Import') return;
+
+                for (const key of [...pendingApplies.keys()]) flushPendingApply(key);
+                const imported = await enqueue(() => importThemes(context, themes, skipReapplyUris));
+                vscode.window.showInformationMessage(`ARN-Skin: imported ${plural(imported.length, 'theme')}.`);
+                updateStatusBar();
+            } catch (err) {
+                vscode.window.showErrorMessage('ARN-Skin: import failed — ' + (err && err.message ? err.message : String(err)));
+                console.error('[ARN]', err);
             }
         })
     );
@@ -2840,7 +3353,19 @@ module.exports.__testing = {
     legacyBaseColors,
     legacyPureBlackSurfaces,
     newlyDerivedKeys,
+    legacyState,
     loadThemeState,
     saveThemeState,
     refreshOutputs,
+    BACKUP_FORMAT,
+    BACKUP_SCHEMA_VERSION,
+    BACKUP_LIMITS,
+    validateImportBundle,
+    assembleBundle,
+    collectExportState,
+    exportCustomizationsToUri,
+    readBackupFromUri,
+    importThemes,
+    pruneForBackup,
+    prepareExport,
 };

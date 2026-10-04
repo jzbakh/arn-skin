@@ -81,6 +81,16 @@
         "command": "arn.manageSkin",
         "title": "Manage Theme Colors",
         "category": "ARN-Skin"
+      },
+      {
+        "command": "arn.exportCustomizations",
+        "title": "Export Customizations…",
+        "category": "ARN-Skin"
+      },
+      {
+        "command": "arn.importCustomizations",
+        "title": "Import Customizations…",
+        "category": "ARN-Skin"
       }
     ],
     "configuration": {
