@@ -183,6 +183,45 @@ describe('Quick derivations — a colour the user set wins over a display option
         assert.equal(colors['editor.selectionBackground'], A(th.bases.accent, '50'));
     });
 
+    it('recolours with a custom Borders colour the borders the theme draws, all of them with NO', () => {
+        const borders = { 'ui.borders': '#FF0B0B' };
+        const inherit = derive(th, borders);
+        assert.equal(inherit['menu.border'], '#FF0B0B', 'a border Spaceport draws');
+        assert.equal(inherit['sideBar.border'], undefined, 'Spaceport has no side bar border');
+        assert.equal(inherit['inputValidation.errorBorder'], undefined, 'the error border keeps its red');
+        assert.equal(derive(theme('neptune'), borders)['sideBar.border'], '#FF0B0B', 'Neptune draws one');
+        assert.equal(derive(th, { ...borders, 'ui.borderless': 'no' })['sideBar.border'], '#FF0B0B');
+        assert.equal(derive(th, { ...borders, 'ui.borderless': 'yes' })['menu.border'], '#00000000');
+        assert.equal(derive(th, {})['menu.border'], undefined, 'nothing set');
+    });
+
+    it('treats the panel filter box and the chat request border like the other borders', () => {
+        const borders = { 'ui.borders': '#FF0B0B' };
+        for (const key of ['panelInput.border', 'chat.requestBorder']) {
+            const theirs = th.json.colors[key];
+            const shown = theirs && !t.sameColor(theirs.slice(0, 7) + '00', theirs);
+            assert.equal(derive(th, borders)[key], shown ? '#FF0B0B' : undefined, `${key} INHERIT`);
+            assert.equal(derive(th, { ...borders, 'ui.borderless': 'yes' })[key], '#00000000', `${key} YES`);
+            assert.equal(derive(th, { ...borders, 'ui.borderless': 'no' })[key], '#FF0B0B', `${key} NO`);
+        }
+    });
+
+    it('counts a fully transparent Borders colour as unset', () => {
+        // What the picker gives from the theme's #00000000: it keeps that alpha.
+        for (const th of themes) {
+            for (const borderless of ['inherit', 'no', 'yes']) {
+                assert.deepEqual(derive(th, { 'ui.borders': '#FF0B0B00', 'ui.borderless': borderless }),
+                    derive(th, { 'ui.borderless': borderless }), `${th.file} ${borderless}`);
+            }
+            // Only a zero alpha: an opaque colour ending in 00 or an almost
+            // transparent one still draws the borders.
+            for (const borders of ['#FF0000', '#F00', '#FF0B0B01']) {
+                assert.ok(t.sameColor(derive(th, { 'ui.borders': borders, 'ui.borderless': 'no' })['menu.border'], borders),
+                    `${th.file} ${borders}`);
+            }
+        }
+    });
+
     it('borders the highlighted tab with a custom Active-Border, else with the accent', () => {
         assert.equal(derive(th, { 'ui.activeBorder': '#40FF00', 'ui.activeTabHighlight': 'yes' })['tab.activeBorderTop'], '#40FF00');
         assert.ok(t.sameColor(derive(th, { 'ui.activeTabHighlight': 'yes' })['tab.activeBorderTop'], th.bases.accent));
@@ -220,6 +259,25 @@ describe('Colours 1.0.5 derived from the Quick bases', () => {
 
     it('gives back the translucent validation messages 1.0.5 drew', () => {
         assert.equal(t.legacyBaseColors({ 'status.error': '#FF3355' }, th.json)['inputValidation.errorBackground'], '#FF335520');
+    });
+
+    it('names the theme borders a Borders colour now recolours without Borderless-Mode', () => {
+        const quick = { 'ui.borders': '#FF0B0B' };
+        assert.ok(t.newlyDerivedKeys(quick, th.json, derive(th, quick)).includes('menu.border'));
+        const no = { 'ui.borders': '#FF0B0B', 'ui.borderless': 'no' };
+        assert.ok(!t.newlyDerivedKeys(no, th.json, derive(th, no)).includes('menu.border'), '1.0.5 drew them with NO');
+    });
+
+    it('gives back the borders Borderless-Mode NO drew in a fully transparent Borders colour', () => {
+        const legacy = t.legacyToggleColors({ 'ui.borders': '#FF0B0B00', 'ui.borderless': 'no' }, th.json);
+        assert.equal(legacy['sideBar.border'], '#FF0B0B00');
+        assert.equal(legacy['menu.border'], '#FF0B0B00');
+        assert.deepEqual(t.legacyToggleColors({ 'ui.borders': '#FF0B0B', 'ui.borderless': 'no' }, th.json), {}, 'drawn as now');
+        assert.deepEqual(t.legacyToggleColors({ 'ui.borders': '#00000000', 'ui.borderless': 'no' }, th.json), {},
+            'the Borders colour of the theme');
+        const neptune = theme('neptune').json;
+        assert.equal(t.legacyToggleColors({ 'ui.borders': '#00000000', 'ui.borderless': 'no' }, neptune)['menu.border'], '#00000000',
+            'a Borders colour set in Quick');
     });
 
     it('gives back what the toggles wrote before their muted colours changed', () => {

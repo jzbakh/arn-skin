@@ -193,13 +193,32 @@ function extractBaseColorsFromTheme(themeJson) {
 // decisions the user did not intend to change.
 // =========================================================================
 
-function generateQuickTheme(parsedUi, dirty, themeType) {
+// The keys the Borderless toggle and a Borders colour draw.
+const BORDER_KEYS = [
+    'sideBar.border', 'panel.border', 'editorGroup.border',
+    'activityBar.border', 'tab.activeBorder', 'tab.border',
+    'titleBar.border', 'menu.border', 'dropdown.border',
+    'input.border', 'notifications.border', 'statusBar.border',
+    'editorGroupHeader.border',
+    'panelSection.border', 'panelSectionHeader.border',
+    'notificationCenter.border', 'notificationToast.border',
+    'editorWidget.border', 'editorHoverWidget.border',
+    'editorSuggestWidget.border', 'diffEditor.border',
+    'checkbox.border', 'button.border', 'pickerGroup.border',
+    'inputValidation.errorBorder', 'inputValidation.warningBorder',
+    'inputValidation.infoBorder', 'menubar.selectionBorder',
+    'panelInput.border', 'chat.requestBorder'
+];
+
+function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     const bg = parsedUi["ui.baseBackground"];
     const text = parsedUi["ui.baseForeground"];
     const accent = parsedUi["ui.accentPrimary"];
     const bgSec = parsedUi["ui.secondaryBackground"];
     const surfaceElevated = parsedUi["ui.surfaceElevated"];
-    const border = parsedUi["ui.borders"];
+    // A fully transparent Borders colour counts as unset: the colour picker
+    // keeps the alpha of the theme's #00000000.
+    const border = toRgba8(parsedUi["ui.borders"])?.endsWith('00') ? undefined : parsedUi["ui.borders"];
     const activeBorder = parsedUi["ui.activeBorder"];
     const selection = parsedUi["ui.selection"];
     const warning = parsedUi["status.warning"];
@@ -228,7 +247,11 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     //             ship with sideBar.border = "#00000000": without the
     //             derivation, NO would be visually identical to YES because
     //             `border` would still be the theme's transparent default.
-    //   INHERIT → leave border keys untouched (theme defaults pass through)
+    //   INHERIT → leave border keys untouched (theme defaults pass through).
+    //             A Borders colour the user set recolours the borders the
+    //             theme draws, and only those: a borderless theme stays
+    //             borderless. The input validation borders keep the theme's
+    //             error, warning and info colours.
     let borderFinal;
     if (borderless === 'yes') {
         borderFinal = '#00000000';
@@ -371,7 +394,6 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     add('panelTitle.activeForeground', text, 'text');
     add('panelTitle.activeBorder', activeBorder, 'activeBorder');
     add('panelTitle.inactiveForeground', A(text, dim('98', 'C0')), 'text', 'bgSec');
-    add('panelInput.border', border, 'border');
     add('panelSectionHeader.background', bgSec, 'bgSec');
     add('panelSectionHeader.foreground', A(text, dim('A0', 'C0')), 'text', 'bgSec');
 
@@ -550,7 +572,6 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     // channel — feeding an opaque colour back through the user's customisation
     // would only earn a "must be transparent" warning in the Advanced editor.
     add('chat.requestBackground', A(text, '10'), 'text', 'bg');
-    add('chat.requestBorder', border, 'border');
     add('chat.requestBubbleBackground', A(M(bgSec, text, 0.05), '66'), 'bgSec', 'text');
     add('chat.requestBubbleHoverBackground', A(M(bgSec, text, 0.08), '99'), 'bgSec', 'text');
     add('chat.requestCodeBorder', A(accent, '40'), 'accent');
@@ -575,28 +596,16 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     add('editorGhostText.background', A(accent, '08'), 'accent');
     add('editorInlayHint.foreground', A(text, '90'), 'text', 'bg');
 
-    // Borders group — only touch border keys when toggle is not INHERIT
-    const BORDER_KEYS = [
-        'sideBar.border', 'panel.border', 'editorGroup.border',
-        'activityBar.border', 'tab.activeBorder', 'tab.border',
-        'titleBar.border', 'menu.border', 'dropdown.border',
-        'input.border', 'notifications.border', 'statusBar.border',
-        'editorGroupHeader.border',
-        'panelSection.border', 'panelSectionHeader.border',
-        'notificationCenter.border', 'notificationToast.border',
-        'editorWidget.border', 'editorHoverWidget.border',
-        'editorSuggestWidget.border', 'diffEditor.border',
-        'checkbox.border', 'button.border', 'pickerGroup.border',
-        'inputValidation.errorBorder', 'inputValidation.warningBorder',
-        'inputValidation.infoBorder', 'menubar.selectionBorder'
-    ];
-    if (borderless === 'inherit') {
-        // Mark every border key as undefined so cleanUndefined() drops them
-        // from the output — the theme's own values pass through unchanged.
-        BORDER_KEYS.forEach(k => { colors[k] = undefined; });
-    } else {
-        BORDER_KEYS.forEach(k => { colors[k] = borderFinal; });
-    }
+    // Borders group — an undefined value is dropped by cleanUndefined(): the
+    // theme's own borders pass through unchanged.
+    const drawn = (key) => {
+        const theirs = toRgba8(themeColors[key]);
+        return !key.startsWith('inputValidation.') && theirs !== null && !theirs.endsWith('00');
+    };
+    BORDER_KEYS.forEach(k => {
+        colors[k] = borderless !== 'inherit' ? borderFinal
+            : dirty.border && border && drawn(k) ? border : undefined;
+    });
 
     // ---- Pure Black Mode (near-black backgrounds)
     //   YES     → darken the code area and side panels halfway to black
@@ -966,7 +975,7 @@ function deriveQuickColors(quick, themeJson) {
     const bases = extractBaseColorsFromTheme(themeJson);
     const dirty = {};
     for (const [key, base] of QUICK_BASES) dirty[base] = !sameColor(quick[key], bases[base]);
-    return colorUtils.cleanUndefined(generateQuickTheme(quick, dirty, themeJson.type).colors);
+    return colorUtils.cleanUndefined(generateQuickTheme(quick, dirty, themeJson.type, themeJson.colors || {}).colors);
 }
 
 function quickViewInputs(quick) {
@@ -1329,6 +1338,12 @@ function legacyToggleColors(quick, themeJson) {
             'dropdown.background', 'quickInput.background', 'menu.background', 'notifications.background',
             'input.background'], widgets);
     };
+    // Borderless-Mode NO drew the borders in a fully transparent Borders
+    // colour set in Quick, which now counts as unset.
+    if (q['ui.borderless'] === 'no' && toRgba8(q['ui.borders'])?.endsWith('00')
+        && !sameColor(q['ui.borders'], extractBaseColorsFromTheme(themeJson).border)) {
+        paint(BORDER_KEYS, q['ui.borders']);
+    }
     if (q['ui.pureBlack'] === 'yes') {
         surfaces(light ? '#FFFFFF' : '#000000', light ? '#F5F5F5' : '#050505', light ? '#EDEDED' : '#0A0A0A');
         out['quickInputList.focusBackground'] = colorUtils.mix(light ? '#EDEDED' : '#0A0A0A',
@@ -1476,12 +1491,18 @@ const LEGACY_BASE_KEYS = (() => {
         ['editorInlayHint.typeForeground', 'activeBorder', (b) => A(b.activeBorder, 'a0')],
         ['editorInlayHint.parameterForeground', 'info', (b) => A(b.info, 'a0')],
         ['menu.separatorBackground', 'text', (b) => A(b.text, '20')],
+        ['panelInput.border', 'border', (b) => b.border],
+        ['chat.requestBorder', 'border', (b) => b.border],
     ];
 })();
 
 // Keys the bases derive that 1.0.5 left to the theme.
 const NEW_BASE_KEYS = ['minimap.background', 'editorStickyScroll.background', 'editorWidget.resizeBorder'];
-const LEGACY_BASE_KEY_SET = new Set([...LEGACY_BASE_KEYS.map(([key]) => key), ...NEW_BASE_KEYS]);
+// Besides those, 1.0.5 left the borders to the theme while Borderless-Mode was
+// INHERIT, whatever the Borders colour.
+const NEWLY_DERIVED_CANDIDATES = new Set([...LEGACY_BASE_KEYS.map(([key]) => key), ...NEW_BASE_KEYS, ...BORDER_KEYS]);
+// Borders the toggle draws now that 1.0.5's toggle never wrote.
+const UNTOGGLED_IN_1_0_5 = new Set(['panelInput.border', 'chat.requestBorder']);
 
 // Keys now derived for `quick` that 1.0.5 left to the theme: their derivation
 // changed, and 1.0.5 wrote them neither from a base nor through a toggle.
@@ -1489,7 +1510,8 @@ const LEGACY_BASE_KEY_SET = new Set([...LEGACY_BASE_KEYS.map(([key]) => key), ..
 function newlyDerivedKeys(quick, themeJson, derived) {
     const old = legacyBaseColors(quick, themeJson);
     const toggled = generateQuickTheme(expandQuick(quick, themeJson), {}, themeJson.type).colors;
-    return Object.keys(derived).filter(key => LEGACY_BASE_KEY_SET.has(key) && !(key in old) && !(key in toggled));
+    return Object.keys(derived).filter(key => NEWLY_DERIVED_CANDIDATES.has(key) && !(key in old)
+        && (toggled[key] === undefined || UNTOGGLED_IN_1_0_5.has(key)));
 }
 
 function legacyBaseColors(quick, themeJson) {
@@ -1625,7 +1647,10 @@ function buildQuickCssContent(baseValues, toggles) {
     --Opt-Vivid-Selection:      ${toggles.vividSelection};
 
   /* YES: Hides all UI borders (panels, tabs, side bar, widgets).
-     NO:  Applies a subtle, text-tinted border. */
+     NO:  Shows them all, in the Borders color set above or a
+          subtle, text-tinted one.
+     INHERIT: Keeps the theme's own borders, in the Borders
+              color if set above. */
     --Opt-Borderless-Mode:      ${toggles.borderless};
 
   /* YES: Highlights the active tab with an accent background,

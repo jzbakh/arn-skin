@@ -233,7 +233,8 @@ describe('buildQuickCssContent', () => {
         // Each toggle must explicitly describe both YES and NO behaviours
         // so the user understands the effect without flipping back to a doc.
         assert.ok(out.includes('YES: Hides all UI borders'));
-        assert.ok(out.includes('NO:  Applies a subtle, text-tinted border'));
+        assert.ok(out.includes('NO:  Shows them all, in the Borders color set above or a\n          subtle, text-tinted one.'));
+        assert.ok(out.includes("INHERIT: Keeps the theme's own borders, in the Borders\n              color if set above."));
         assert.ok(out.includes('YES: Turns every background near-black (near-white on\n          light themes)'));
         assert.ok(out.includes("NO:  Keeps the theme's own background shades"));
         assert.ok(out.includes('YES: Highlights the active tab'));
