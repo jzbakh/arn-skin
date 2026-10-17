@@ -240,6 +240,8 @@ describe('buildQuickCssContent', () => {
         assert.ok(out.includes('NO:  Plain active tab, without accent color or border'));
         assert.ok(out.includes('YES: Colors the selection and word highlights with the accent'));
         assert.ok(out.includes('NO:  Uses a soft neutral gray for the selection and word\n          highlights'));
+        assert.ok(out.includes('A Selection color set above still colors the selection'));
+        assert.ok(out.includes('(in the Active-Border\n          color if set above)'));
         assert.ok(out.includes('YES: Highlights current line and cursor'));
         assert.ok(out.includes('NO:  Removes the line highlight entirely'));
     });

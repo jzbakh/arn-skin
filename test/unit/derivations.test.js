@@ -1,12 +1,13 @@
 // What a Quick base becomes once derived: every key keeps its role on dark and
-// light themes, a tinted base never turns into a saturated colour, and the
-// palettes each theme picks for itself are left alone.
+// light themes, a tinted base never turns into a saturated colour, the
+// palettes each theme picks for itself are left alone, and a colour the user
+// set wins over a display option.
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { __testing: t } = require('../../extension');
-const { mix: M, hexToRgb, contrast, normalizeHex } = t.colorUtils;
+const { mix: M, addAlpha: A, hexToRgb, contrast, normalizeHex } = t.colorUtils;
 
 const THEMES_DIR = path.join(__dirname, '..', '..', 'themes');
 const themes = fs.readdirSync(THEMES_DIR).filter(f => f.endsWith('.json')).map(file => {
@@ -166,6 +167,28 @@ describe('Quick derivations — palettes each theme picks for itself', () => {
     });
 });
 
+describe('Quick derivations — a colour the user set wins over a display option', () => {
+    const th = theme('spaceport');
+
+    it('keeps a custom Selection whatever Vivid-Selection says, the word highlights still follow the toggle', () => {
+        for (const vivid of ['yes', 'no']) {
+            const colors = derive(th, { 'ui.selection': '#4CC4E866', 'ui.vividSelection': vivid });
+            assert.equal(colors['editor.selectionBackground'], '#4CC4E866', vivid);
+            assert.ok(colors['editor.wordHighlightBackground'], vivid);
+        }
+    });
+
+    it('lets Vivid-Selection colour the selection while it is the theme\'s', () => {
+        const colors = derive(th, { 'ui.vividSelection': 'yes' });
+        assert.equal(colors['editor.selectionBackground'], A(th.bases.accent, '50'));
+    });
+
+    it('borders the highlighted tab with a custom Active-Border, else with the accent', () => {
+        assert.equal(derive(th, { 'ui.activeBorder': '#40FF00', 'ui.activeTabHighlight': 'yes' })['tab.activeBorderTop'], '#40FF00');
+        assert.ok(t.sameColor(derive(th, { 'ui.activeTabHighlight': 'yes' })['tab.activeBorderTop'], th.bases.accent));
+    });
+});
+
 describe('Colours 1.0.5 derived from the Quick bases', () => {
     const th = theme('spaceport');
 
@@ -203,5 +226,11 @@ describe('Colours 1.0.5 derived from the Quick bases', () => {
         const off = t.legacyToggleColors({ 'ui.baseForeground': '#EAC6C6', 'ui.cursorLineGlow': 'no', 'ui.activeTabHighlight': 'no' }, th.json);
         assert.equal(off['editorCursor.foreground'], '#CF7B7B');
         assert.equal(off['tab.unfocusedActiveForeground'], '#CF7B7B');
+    });
+
+    it('gives back what the toggles wrote before a custom colour won over them', () => {
+        const legacy = t.legacyToggleColors({ 'ui.vividSelection': 'yes', 'ui.activeTabHighlight': 'yes' }, th.json);
+        assert.ok(t.sameColor(legacy['editor.selectionBackground'], A(th.bases.accent, '50')));
+        assert.ok(t.sameColor(legacy['tab.activeBorderTop'], th.bases.accent));
     });
 });

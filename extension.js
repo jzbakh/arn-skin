@@ -639,8 +639,9 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
 
     // ---- Active Tab Highlight (Material Theme inspired)
     //   YES     → strong accent presence on the active tab: tinted bg,
-    //             accent foreground, accent borders top + bottom. The label
-    //             is pulled toward the text colour when the accent would read
+    //             accent foreground, accent borders top + bottom, or the
+    //             Active-Border colour when the user set one. The label is
+    //             pulled toward the text colour when the accent would read
     //             below 4.5:1 (gold on Jupiter's cream).
     //   NO      → plain active tab: the theme's base background and text
     //             colour, no accent tint or border.
@@ -650,8 +651,9 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
         const unfocusedBg = M(bg, accent, 0.05);
         colors['tab.activeBackground'] = activeBg;
         colors['tab.activeForeground'] = colorUtils.readable(accent, activeBg, text);
-        colors['tab.activeBorderTop'] = accent;
-        colors['tab.activeBorder'] = accent;
+        const border = dirty.activeBorder ? activeBorder : accent;
+        colors['tab.activeBorderTop'] = border;
+        colors['tab.activeBorder'] = border;
         colors['tab.unfocusedActiveBackground'] = unfocusedBg;
         colors['tab.unfocusedActiveForeground'] = colorUtils.readable(M(text, accent, 0.30), unfocusedBg, text);
     } else if (activeTabHighlight === 'no' && bg) {
@@ -671,10 +673,15 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     //             (~15% on light themes), light enough for the syntax
     //             colours underneath to stay readable.
     //   INHERIT → leave the keys alone.
+    // A Selection colour set in Quick keeps the selection either way: the
+    // toggle then only colours the word highlights.
+    const ownSelection = dirty.selection;
     if (vividSelection === 'yes' && accent) {
-        colors['editor.selectionBackground'] = A(accent, '50');
-        colors['editor.selectionHighlightBackground'] = A(accent, '30');
-        colors['editor.inactiveSelectionBackground'] = A(accent, '28');
+        if (!ownSelection) {
+            colors['editor.selectionBackground'] = A(accent, '50');
+            colors['editor.selectionHighlightBackground'] = A(accent, '30');
+            colors['editor.inactiveSelectionBackground'] = A(accent, '28');
+        }
         colors['editor.wordHighlightBackground'] = A(accent, '38');
         colors['editor.wordHighlightStrongBackground'] = A(accent, '48');
     } else if (vividSelection === 'no' && text) {
@@ -684,9 +691,11 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
         const [sel, match, inactive, word, strongWord] = isLight
             ? ['26', '18', '1C', '1C', '22']
             : ['38', '22', '28', '26', '34'];
-        colors['editor.selectionBackground'] = A(text, sel);
-        colors['editor.selectionHighlightBackground'] = A(text, match);
-        colors['editor.inactiveSelectionBackground'] = A(text, inactive);
+        if (!ownSelection) {
+            colors['editor.selectionBackground'] = A(text, sel);
+            colors['editor.selectionHighlightBackground'] = A(text, match);
+            colors['editor.inactiveSelectionBackground'] = A(text, inactive);
+        }
         colors['editor.wordHighlightBackground'] = A(text, word);
         colors['editor.wordHighlightStrongBackground'] = A(text, strongWord);
     }
@@ -1315,8 +1324,16 @@ function legacyToggleColors(quick, themeJson) {
     if (q['ui.activeTabHighlight'] === 'yes') {
         out['tab.activeForeground'] = q['ui.accentPrimary'];
         out['tab.unfocusedActiveForeground'] = colorUtils.mix(q['ui.baseForeground'], q['ui.accentPrimary'], 0.30);
+        out['tab.activeBorderTop'] = q['ui.accentPrimary'];
+        out['tab.activeBorder'] = q['ui.accentPrimary'];
     } else if (q['ui.activeTabHighlight'] === 'no') {
         out['tab.unfocusedActiveForeground'] = L(q['ui.baseForeground'], -0.2);
+    }
+    if (q['ui.vividSelection'] === 'yes') {
+        const A = (alpha) => colorUtils.addAlpha(q['ui.accentPrimary'], alpha);
+        out['editor.selectionBackground'] = A('50');
+        out['editor.selectionHighlightBackground'] = A('30');
+        out['editor.inactiveSelectionBackground'] = A('28');
     }
     if (q['ui.cursorLineGlow'] === 'no') {
         out['editorCursor.foreground'] = L(q['ui.baseForeground'], light ? 0.2 : -0.2);
@@ -1578,7 +1595,8 @@ function buildQuickCssContent(baseValues, toggles) {
 
   /* YES: Colors the selection and word highlights with the accent.
      NO:  Uses a soft neutral gray for the selection and word
-          highlights. */
+          highlights.
+     A Selection color set above still colors the selection. */
     --Opt-Vivid-Selection:      ${toggles.vividSelection};
 
   /* YES: Hides all UI borders (panels, tabs, side bar, widgets).
@@ -1586,7 +1604,8 @@ function buildQuickCssContent(baseValues, toggles) {
     --Opt-Borderless-Mode:      ${toggles.borderless};
 
   /* YES: Highlights the active tab with an accent background,
-          text color, and top/bottom borders.
+          text color, and top/bottom borders (in the Active-Border
+          color if set above).
      NO:  Plain active tab, without accent color or border. */
     --Opt-Active-Tab-Highlight: ${toggles.activeTabHighlight};
 }
