@@ -351,6 +351,24 @@ describe('Quick and Advanced layers — user transitions', function () {
         assert.equal(entryOf('editor', 'tokenColorCustomizations'), undefined, 'the restored colour is the theme\'s own');
     });
 
+    it('puts the theme colour back on a changed Quick line in one action', async () => {
+        const quick = await openMode('quick');
+        await type(quick, ACCENT('#00AAFF'));
+        assert.ok(colorsOf()['button.background'], 'the accent is applied');
+
+        const doc = quick.document;
+        const line = doc.lineAt(doc.positionAt(doc.getText().search(/--Accentuation:/)).line).range;
+        const actions = await vscode.commands.executeCommand('vscode.executeCodeActionProvider', doc.uri, line);
+        const theirs = __testing.colorUtils.normalizeHex(__testing.extractBaseColorsFromTheme(themeJson).accent);
+        const action = actions.find(a => a.title === `Restore the theme's color (${theirs})`);
+        assert.ok(action, `among ${JSON.stringify(actions.map(a => a.title))}`);
+        await vscode.workspace.applyEdit(action.edit);
+        await settle();
+
+        assert.match(doc.getText(), new RegExp(`--Accentuation:\\s*${theirs};`));
+        assert.equal(colorsOf()['button.background'], undefined, 'back to the theme');
+    });
+
     it('reads a colour the picker wrote in another notation', async () => {
         const quick = await openMode('quick');
         await type(quick, (text) => text.replace(/(--Accentuation:\s*)#[0-9A-Fa-f]+/, '$1oklch(52.887% 0.10286 32.457)'));

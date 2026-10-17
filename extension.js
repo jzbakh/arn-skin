@@ -1195,6 +1195,28 @@ function locateRejected(text, r) {
     return null;
 }
 
+// The Quick lines that differ from the theme, each with the edit that puts
+// the theme's value back: its colour for a base, INHERIT for a display option.
+function themeRestores(text, defaults) {
+    const parsed = parseQuickCss(text);
+    const out = [];
+    for (const [key, , , cssVar] of QUICK_BASES) {
+        const m = new RegExp(`--${cssVar}:[ \\t]*([^;\\n]*)`, 'i').exec(text);
+        const value = m && m[1].replace(/\s+$/, '');
+        if (!value || !parsed[key] || sameColor(parsed[key], defaults[key])) continue;
+        const start = m.index + m[0].length - m[1].length;
+        const theirs = colorUtils.normalizeHex(defaults[key]);
+        out.push({ start, end: start + value.length, newText: theirs, title: `Restore the theme's color (${theirs})` });
+    }
+    for (const [, cssVar] of QUICK_TOGGLES) {
+        const m = new RegExp(`--${cssVar}:[ \\t]*(yes|no)\\b`, 'i').exec(text);
+        if (!m) continue;
+        const start = m.index + m[0].length - m[1].length;
+        out.push({ start, end: start + m[1].length, newText: 'INHERIT', title: "Restore the theme's default (INHERIT)" });
+    }
+    return out;
+}
+
 function compactState(state) {
     const out = {};
     if (state.quick && Object.keys(state.quick).length) out.quick = state.quick;
@@ -1602,6 +1624,8 @@ function buildQuickCssContent(baseValues, toggles) {
 ==========================================================
   Change any color via the gutter color picker.
   Changes apply in real-time (debounced 400ms).
+  On a changed line, the light bulb restores the
+  theme's value.
 
   For syntax colors, use "Advanced: Syntax Colors" — it
   exposes all per-language scopes that the theme defines.
@@ -2331,13 +2355,26 @@ function activate(context) {
         rejectionMarks.delete(uri.toString());
         refreshHints(uri);
     };
+    // The theme's Quick values, read once per theme: the light bulb asks for
+    // them at every cursor move in a Quick file.
+    const themeDefaults = new Map();
+    const quickDefaultsFor = async (uri) => {
+        const themeLabel = await themeLabelForUri(context, uri);
+        if (!themeLabel) return null;
+        if (!themeDefaults.has(themeLabel)) {
+            const theme = await getThemeData(context, themeLabel);
+            if (!theme) return null;
+            themeDefaults.set(themeLabel, quickDefaults(theme.themeJson));
+        }
+        return themeDefaults.get(themeLabel);
+    };
     context.subscriptions.push(
         vscode.languages.registerCodeActionsProvider(
             { pattern: new vscode.RelativePattern(context.globalStorageUri, '*') },
             {
-                provideCodeActions(doc, range, ctx) {
+                async provideCodeActions(doc, range, ctx) {
                     const marks = rejectionMarks.get(doc.uri.toString()) || [];
-                    return marks
+                    const actions = marks
                         .filter(m => m.fix && ctx.diagnostics.some(d =>
                             d.source === 'ARN-Skin' && d.range.isEqual(m.diagnostic.range) && d.message === m.diagnostic.message))
                         .map(m => {
@@ -2348,6 +2385,17 @@ function activate(context) {
                             action.isPreferred = true;
                             return action;
                         });
+                    if (inferCustomizationMode(doc.uri, context) !== 'quick') return actions;
+                    const defaults = await quickDefaultsFor(doc.uri);
+                    for (const r of defaults ? themeRestores(doc.getText(), defaults) : []) {
+                        const at = new vscode.Range(doc.positionAt(r.start), doc.positionAt(r.end));
+                        if (range.start.line !== range.end.line || at.start.line !== range.start.line) continue;
+                        const action = new vscode.CodeAction(r.title, vscode.CodeActionKind.QuickFix);
+                        action.edit = new vscode.WorkspaceEdit();
+                        action.edit.replace(doc.uri, at, r.newText);
+                        actions.push(action);
+                    }
+                    return actions;
                 },
             },
             { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }),
@@ -2681,6 +2729,7 @@ module.exports.__testing = {
     summarizeRejected,
     hintForRejected,
     locateRejected,
+    themeRestores,
     buildQuickCssContent,
     sanitizeLabel,
     planetOf,

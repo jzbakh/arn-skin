@@ -279,3 +279,28 @@ describe('buildQuickCssContent', () => {
         assert.equal(out.includes('--Global-Background:     undefined;'), false);
     });
 });
+
+describe('themeRestores — back to the theme on a changed Quick line', () => {
+    const { themeRestores, quickDefaults, parseJsonc } = require('../../extension').__testing;
+    const themeJson = parseJsonc(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', '..', 'themes', 'arn-spaceport.json'), 'utf8'));
+    const defaults = quickDefaults(themeJson);
+    const view = (main, glow) => `:root {\n    --Main-Text:             ${main};\n    --Accentuation:          ${defaults['ui.accentPrimary']};\n    --Opt-Cursor-Line-Glow:   ${glow};\n}\n`;
+
+    it('offers the theme colour on a changed base and INHERIT on a set display option', () => {
+        const text = view('#EAC6C6', 'YES');
+        const restores = themeRestores(text, defaults);
+        assert.deepEqual(restores.map(r => [text.slice(r.start, r.end), r.newText, r.title]), [
+            ['#EAC6C6', '#D8DCE0', "Restore the theme's color (#D8DCE0)"],
+            ['YES', 'INHERIT', "Restore the theme's default (INHERIT)"],
+        ]);
+    });
+
+    it('offers nothing on a line that already holds the theme value, in any notation or case', () => {
+        assert.deepEqual(themeRestores(view('#d8dce0', 'INHERIT'), defaults), []);
+        assert.deepEqual(themeRestores(view('rgb(216, 220, 224)', 'inherit'), defaults), []);
+    });
+
+    it('leaves a rejected value to the previous-colour fix', () => {
+        assert.deepEqual(themeRestores(view('#ZZZ', 'INHERIT'), defaults), []);
+    });
+});
