@@ -505,6 +505,39 @@ describe('Quick and Advanced layers — user transitions', function () {
             'the semantic edit moves to where VS Code reads it');
     });
 
+    it('recomposes the colours from the saved state at startup', async () => {
+        // What an earlier build derived from a pale pink text: red line numbers.
+        const state = { quick: { 'ui.baseForeground': '#EAC6C6' } };
+        await vscode.workspace.getConfiguration('arnSkin').update('customizations', { [`[${MARS}]`]: state }, G);
+        await wb().update('colorCustomizations', { [`[${MARS}]`]: { 'editor.foreground': '#EAC6C6', 'editorLineNumber.foreground': '#A73D3D' } }, G);
+
+        const emptyDir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'arn-empty-'));
+        await __testing.refreshOutputs({ extensionUri: vscode.Uri.file(REPO_ROOT), globalStorageUri: vscode.Uri.file(emptyDir) });
+        fs.rmSync(emptyDir, { recursive: true, force: true });
+
+        assert.deepEqual(colorsOf(), __testing.composeOutputs(state, themeJson).colors);
+        assert.equal(colorsOf()['editorLineNumber.foreground'], '#EAC6C648');
+    });
+
+    it('rebuilds at startup a theme an earlier version customised through Quick', async () => {
+        const defaultView = (await openMode('quick')).document.getText();
+        await closeAll();
+        await clearCustomizations();
+        const legacyDir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'arn-legacy-'));
+        fs.writeFileSync(path.join(legacyDir, 'quick-arn-mars-amber-storm.css'),
+            defaultView.replace(/(--Main-Text:\s*)#[0-9A-Fa-f]+/, '$1#EAC6C6'));
+        // What 1.0.5 derived from that text, red line numbers included.
+        const legacy = __testing.legacyBaseColors({ 'ui.baseForeground': '#EAC6C6' }, themeJson);
+        assert.equal(legacy['editorLineNumber.foreground'], '#A73D3D');
+        await wb().update('colorCustomizations', { [`[${MARS}]`]: { ...legacy, 'editor.foreground': '#EAC6C6' } }, G);
+
+        await __testing.refreshOutputs({ extensionUri: vscode.Uri.file(REPO_ROOT), globalStorageUri: vscode.Uri.file(legacyDir) });
+        fs.rmSync(legacyDir, { recursive: true, force: true });
+
+        assert.deepEqual(__testing.readStoredState(MARS), { quick: { 'ui.baseForeground': '#EAC6C6' } });
+        assert.equal(colorsOf()['editorLineNumber.foreground'], '#EAC6C648');
+    });
+
     it('lets the colours an earlier toggle wrote follow the toggle as it is now', async () => {
         const defaultView = (await openMode('quick')).document.getText();
         await closeAll();

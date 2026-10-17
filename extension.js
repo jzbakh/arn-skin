@@ -1277,6 +1277,31 @@ async function saveThemeState(themeLabel, themeJson, state) {
             Object.keys(out.semanticRules).length ? out.semanticRules : undefined));
 }
 
+// Recomposes the outputs of every theme with a saved state: a newer version
+// may derive the same state differently, and its colours then show without
+// an edit. The themes earlier versions customised through Quick are rebuilt
+// into layers here too, rather than at the first open of the Skin menu: their
+// Quick file tells which colours were derived. Unchanged entries are not
+// rewritten. A customisation view left open is rewritten from the state, so
+// saving it brings nothing older back.
+async function refreshOutputs(context) {
+    const labels = new Set(Object.keys(globalEntries('arnSkin', 'customizations')).map(sel => sel.slice(1, -1)));
+    for (const { label } of (await readPackageJson(context)).contributes.themes) {
+        if (await readTextIfExists(quickUriFor(context, label)) !== null) labels.add(label);
+    }
+    for (const label of labels) {
+        const theme = await getThemeData(context, label);
+        if (theme) await saveThemeState(label, theme.themeJson, await loadThemeState(context, label, theme.themeJson));
+    }
+    const views = { quick: ensureQuickFile, 'advanced-ui': ensureAdvancedUIFile, 'advanced-syntax': ensureAdvancedSyntaxFile };
+    for (const doc of vscode.workspace.textDocuments) {
+        const mode = inferCustomizationMode(doc.uri, context);
+        const themeLabel = mode && await themeLabelForUri(context, doc.uri);
+        const theme = themeLabel && await getThemeData(context, themeLabel);
+        if (theme) await views[mode](context, themeLabel, theme.themeJson);
+    }
+}
+
 async function readTextIfExists(uri) {
     try {
         return new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
@@ -2588,6 +2613,8 @@ function activate(context) {
         })
     );
 
+    enqueue(() => refreshOutputs(context)).catch(reportApplyError);
+
     // Resolves once no edit waits for its debounce and the queue is empty. The
     // integration tests read it from the extension's exports.
     return {
@@ -2668,4 +2695,5 @@ module.exports.__testing = {
     newlyDerivedKeys,
     loadThemeState,
     saveThemeState,
+    refreshOutputs,
 };
