@@ -213,10 +213,12 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     const vividSelection = parsedUi["ui.vividSelection"];
     const cursorLineGlow = parsedUi["ui.cursorLineGlow"];
 
-    const L = colorUtils.adjustLightness;
     const A = colorUtils.addAlpha;
     const M = colorUtils.mix;
     const isLight = themeType === 'vs' || themeType === 'light';
+    // The light theme dims its labels far less than the dark ones do: those
+    // alphas are fitted on each.
+    const dim = (dark, light) => (isLight ? light : dark);
 
     // Borderless toggle:
     //   YES     → force all border keys transparent (truly borderless)
@@ -241,57 +243,55 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     }
 
     const colors = {};
-    // Gated emitter — a key is only written when its source base is dirty.
-    // This lets untouched bases fall through to the theme's own values.
-    const add = (key, value, dep) => { if (dirty[dep]) colors[key] = value; };
+    // Gated emitter — a key is only written when one of its source bases is
+    // dirty. This lets untouched bases fall through to the theme's own values.
+    // Each formula keeps its role on dark and light themes alike: a dimmed
+    // text is the text with alpha, a raised surface is mixed toward the text.
+    // A lightness shift would saturate a tinted colour and invert on light
+    // themes.
+    const add = (key, value, ...deps) => { if (deps.some(d => dirty[d])) colors[key] = value; };
 
     // ---- Editor core
     add('editor.background', bg, 'bg');
     add('editor.foreground', text, 'text');
-    add('editor.lineHighlightBackground', L(bg, 0.04), 'bg');
+    add('editor.lineHighlightBackground', A(text, '10'), 'text', 'bg');
     add('editor.selectionBackground', selection, 'selection');
-    add('editor.selectionHighlightBackground', A(selection, '60'), 'selection');
-    add('editor.inactiveSelectionBackground', A(selection, '50'), 'selection');
+    add('editor.selectionHighlightBackground', A(selection, '28'), 'selection');
+    add('editor.inactiveSelectionBackground', A(selection, '20'), 'selection');
     add('editor.wordHighlightBackground', A(accent, '22'), 'accent');
     add('editor.wordHighlightStrongBackground', A(accent, '33'), 'accent');
     add('editor.findMatchBackground', A(accent, '55'), 'accent');
-    add('editor.findMatchHighlightBackground', A(accent, '33'), 'accent');
-    add('editor.findRangeHighlightBackground', A(accent, '15'), 'accent');
+    add('editor.findMatchHighlightBackground', A(accent, '28'), 'accent');
+    add('editor.findRangeHighlightBackground', A(accent, '0D'), 'accent');
     add('editor.hoverHighlightBackground', A(accent, '20'), 'accent');
     add('editor.rangeHighlightBackground', A(accent, '15'), 'accent');
-    add('editorCursor.foreground', accent, 'accent');
     add('editorCursor.background', bg, 'bg');
     add('editorLink.activeForeground', accent, 'accent');
+    // The themes paint them as the code they lie on, or a shade off it.
+    add('minimap.background', bg, 'bg');
+    add('editorStickyScroll.background', bg, 'bg');
 
     // ---- Line numbers, rulers, whitespace, indent guides
-    add('editorLineNumber.foreground', L(text, -0.4), 'text');
+    add('editorLineNumber.foreground', A(text, dim('48', '58')), 'text', 'bg');
     add('editorLineNumber.activeForeground', accent, 'accent');
-    add('editorIndentGuide.background1', L(bg, 0.1), 'bg');
+    add('editorIndentGuide.background1', A(text, '20'), 'text', 'bg');
     add('editorIndentGuide.activeBackground1', A(accent, '45'), 'accent');
-    add('editorRuler.foreground', L(text, -0.5), 'text');
-    add('editorWhitespace.foreground', A(text, '30'), 'text');
+    add('editorRuler.foreground', A(text, '28'), 'text', 'bg');
+    add('editorWhitespace.foreground', A(text, dim('18', '28')), 'text');
 
-    // ---- Bracket match & highlight — sourced from the UI palette so the
-    // 6-level rainbow stays consistent across every theme without forcing
-    // the user to also tune syntax colours in Quick mode.
+    // ---- Bracket match; the bracket pair colours stay the theme's
     add('editorBracketMatch.background', A(accent, '20'), 'accent');
     add('editorBracketMatch.border', accent, 'accent');
-    add('editorBracketHighlight.foreground1', accent, 'accent');
-    add('editorBracketHighlight.foreground2', info, 'info');
-    add('editorBracketHighlight.foreground3', success, 'success');
-    add('editorBracketHighlight.foreground4', warning, 'warning');
-    add('editorBracketHighlight.foreground5', activeBorder, 'activeBorder');
-    add('editorBracketHighlight.foreground6', A(text, '99'), 'text');
     add('editorBracketHighlight.unexpectedBracket.foreground', error, 'error');
 
     // ---- Overview ruler
     add('editorOverviewRuler.border', bg, 'bg');
     add('editorOverviewRuler.findMatchForeground', A(accent, '80'), 'accent');
-    add('editorOverviewRuler.errorForeground', A(error, '80'), 'error');
-    add('editorOverviewRuler.warningForeground', A(warning, '80'), 'warning');
+    add('editorOverviewRuler.errorForeground', error, 'error');
+    add('editorOverviewRuler.warningForeground', warning, 'warning');
     add('editorOverviewRuler.infoForeground', A(accent, '80'), 'accent');
-    add('editorOverviewRuler.addedForeground', A(success, '80'), 'success');
-    add('editorOverviewRuler.deletedForeground', A(error, '80'), 'error');
+    add('editorOverviewRuler.addedForeground', success, 'success');
+    add('editorOverviewRuler.deletedForeground', error, 'error');
     add('editorOverviewRuler.modifiedForeground', A(accent, '80'), 'accent');
     add('editorOverviewRuler.selectionHighlightForeground', A(accent, '60'), 'accent');
     add('editorOverviewRuler.wordHighlightForeground', A(accent, '60'), 'accent');
@@ -300,6 +300,7 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     // ---- Editor widgets — surface-elevated palette
     add('editorWidget.background', surfaceElevated, 'surfaceElevated');
     add('editorWidget.foreground', text, 'text');
+    add('editorWidget.resizeBorder', activeBorder, 'activeBorder');
     add('editorHoverWidget.background', surfaceElevated, 'surfaceElevated');
     add('editorHoverWidget.foreground', text, 'text');
     add('editorSuggestWidget.background', surfaceElevated, 'surfaceElevated');
@@ -311,28 +312,28 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     // ---- Side bar
     add('sideBar.background', bgSec, 'bgSec');
     add('sideBar.foreground', text, 'text');
-    add('sideBarTitle.foreground', text, 'text');
-    add('sideBarSectionHeader.background', L(bgSec, 0.04), 'bgSec');
+    add('sideBarTitle.foreground', A(text, dim('A0', 'C0')), 'text', 'bgSec');
+    add('sideBarSectionHeader.background', bgSec, 'bgSec');
     add('sideBarSectionHeader.foreground', text, 'text');
 
     // ---- Activity bar
     add('activityBar.background', bgSec, 'bgSec');
     add('activityBar.foreground', accent, 'accent');
-    add('activityBar.inactiveForeground', L(text, -0.4), 'text');
+    add('activityBar.inactiveForeground', A(text, dim('48', '88')), 'text', 'bgSec');
     add('activityBar.activeBorder', activeBorder, 'activeBorder');
     add('activityBar.activeBackground', A(accent, '10'), 'accent');
     add('activityBarBadge.background', accent, 'accent');
     add('activityBarBadge.foreground', bg, 'bg');
     add('activityBarTop.foreground', accent, 'accent');
-    add('activityBarTop.inactiveForeground', L(text, -0.4), 'text');
+    add('activityBarTop.inactiveForeground', A(text, dim('48', '88')), 'text', 'bgSec');
 
     // ---- Status bar
-    add('statusBar.background', L(bgSec, -0.03), 'bgSec');
-    add('statusBar.foreground', L(text, -0.2), 'text');
+    add('statusBar.background', bgSec, 'bgSec');
+    add('statusBar.foreground', A(text, dim('B0', 'F8')), 'text', 'bgSec');
     add('statusBar.debuggingBackground', accent, 'accent');
     add('statusBar.debuggingForeground', bg, 'bg');
-    add('statusBar.noFolderBackground', L(bgSec, 0.02), 'bgSec');
-    add('statusBar.noFolderForeground', L(text, -0.2), 'text');
+    add('statusBar.noFolderBackground', bgSec, 'bgSec');
+    add('statusBar.noFolderForeground', A(text, dim('A8', 'F8')), 'text', 'bgSec');
     add('statusBarItem.remoteBackground', accent, 'accent');
     add('statusBarItem.remoteForeground', bg, 'bg');
     add('statusBarItem.hoverBackground', A(accent, '15'), 'accent');
@@ -348,58 +349,41 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     // ---- Title bar
     add('titleBar.activeBackground', bgSec, 'bgSec');
     add('titleBar.activeForeground', text, 'text');
-    add('titleBar.inactiveBackground', L(bgSec, -0.05), 'bgSec');
-    add('titleBar.inactiveForeground', L(text, -0.3), 'text');
+    add('titleBar.inactiveBackground', bgSec, 'bgSec');
+    add('titleBar.inactiveForeground', A(text, dim('70', 'C0')), 'text', 'bgSec');
 
     // ---- Tabs
     add('tab.activeBackground', bg, 'bg');
     add('tab.activeForeground', text, 'text');
     add('tab.activeBorderTop', activeBorder, 'activeBorder');
     add('tab.inactiveBackground', bgSec, 'bgSec');
-    add('tab.inactiveForeground', L(text, -0.3), 'text');
-    add('tab.hoverBackground', L(bgSec, 0.03), 'bgSec');
+    add('tab.inactiveForeground', A(text, dim('98', 'C0')), 'text', 'bgSec');
+    add('tab.hoverBackground', A(text, '10'), 'text', 'bgSec');
     add('tab.hoverForeground', text, 'text');
-    add('tab.unfocusedActiveBackground', L(bg, 0.02), 'bg');
-    add('tab.unfocusedActiveForeground', L(text, -0.2), 'text');
+    add('tab.unfocusedActiveBackground', bg, 'bg');
+    add('tab.unfocusedActiveForeground', A(text, dim('B0', 'C0')), 'text', 'bgSec');
     add('tab.unfocusedInactiveBackground', bgSec, 'bgSec');
-    add('tab.unfocusedInactiveForeground', L(text, -0.4), 'text');
+    add('tab.unfocusedInactiveForeground', A(text, '58'), 'text', 'bgSec');
     add('editorGroupHeader.tabsBackground', bgSec, 'bgSec');
 
     // ---- Panel
     add('panel.background', bg, 'bg');
     add('panelTitle.activeForeground', text, 'text');
     add('panelTitle.activeBorder', activeBorder, 'activeBorder');
-    add('panelTitle.inactiveForeground', L(text, -0.3), 'text');
+    add('panelTitle.inactiveForeground', A(text, dim('98', 'C0')), 'text', 'bgSec');
     add('panelInput.border', border, 'border');
-    add('panelSectionHeader.background', L(bgSec, 0.02), 'bgSec');
-    add('panelSectionHeader.foreground', text, 'text');
+    add('panelSectionHeader.background', bgSec, 'bgSec');
+    add('panelSectionHeader.foreground', A(text, dim('A0', 'C0')), 'text', 'bgSec');
 
     // ---- Terminal
     add('terminal.background', bg, 'bg');
     add('terminal.foreground', text, 'text');
     add('terminal.selectionBackground', selection, 'selection');
-    add('terminalCursor.foreground', accent, 'accent');
     add('terminalCursor.background', bg, 'bg');
-    add('terminal.ansiBlack', bg, 'bg');
-    add('terminal.ansiRed', error, 'error');
-    add('terminal.ansiGreen', success, 'success');
-    add('terminal.ansiYellow', warning, 'warning');
-    add('terminal.ansiBlue', accent, 'accent');
-    add('terminal.ansiMagenta', activeBorder, 'activeBorder');
-    add('terminal.ansiCyan', info, 'info');
-    add('terminal.ansiWhite', text, 'text');
-    add('terminal.ansiBrightBlack', L(bg, 0.2), 'bg');
-    add('terminal.ansiBrightRed', L(error, 0.1), 'error');
-    add('terminal.ansiBrightGreen', L(success, 0.1), 'success');
-    add('terminal.ansiBrightYellow', L(warning, 0.1), 'warning');
-    add('terminal.ansiBrightBlue', L(accent, 0.1), 'accent');
-    add('terminal.ansiBrightMagenta', L(activeBorder, 0.1), 'activeBorder');
-    add('terminal.ansiBrightCyan', L(info, 0.1), 'info');
-    add('terminal.ansiBrightWhite', L(text, 0.1), 'text');
 
     // ---- Debug
     add('debugIcon.breakpointForeground', error, 'error');
-    add('debugIcon.breakpointDisabledForeground', L(error, -0.3), 'error');
+    add('debugIcon.breakpointDisabledForeground', A(text, '50'), 'text', 'bgSec');
     add('debugIcon.breakpointUnverifiedForeground', warning, 'warning');
     add('debugIcon.startForeground', success, 'success');
     add('debugIcon.pauseForeground', accent, 'accent');
@@ -410,29 +394,26 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     add('debugIcon.stepIntoForeground', accent, 'accent');
     add('debugIcon.stepOutForeground', accent, 'accent');
     add('debugIcon.continueForeground', success, 'success');
-    add('debugToolBar.background', L(bgSec, 0.02), 'bgSec');
-    add('editor.stackFrameHighlightBackground', A(warning, '33'), 'warning');
-    add('editor.focusedStackFrameHighlightBackground', A(success, '33'), 'success');
+    add('debugToolBar.background', bgSec, 'bgSec');
+    add('editor.stackFrameHighlightBackground', A(warning, '18'), 'warning');
+    add('editor.focusedStackFrameHighlightBackground', A(success, '18'), 'success');
 
     // ---- Git decoration
     add('gitDecoration.addedResourceForeground', success, 'success');
     add('gitDecoration.modifiedResourceForeground', warning, 'warning');
     add('gitDecoration.deletedResourceForeground', error, 'error');
-    add('gitDecoration.renamedResourceForeground', accent, 'accent');
-    add('gitDecoration.untrackedResourceForeground', success, 'success');
-    add('gitDecoration.ignoredResourceForeground', L(text, -0.5), 'text');
+    add('gitDecoration.ignoredResourceForeground', A(text, '48'), 'text', 'bgSec');
     add('gitDecoration.conflictingResourceForeground', error, 'error');
     add('gitDecoration.stageModifiedResourceForeground', warning, 'warning');
     add('gitDecoration.stageDeletedResourceForeground', error, 'error');
-    add('gitDecoration.submoduleResourceForeground', accent, 'accent');
 
     // ---- Diff editor
     add('diffEditor.insertedTextBackground', A(success, '20'), 'success');
     add('diffEditor.removedTextBackground', A(error, '20'), 'error');
     add('diffEditor.insertedLineBackground', A(success, '10'), 'success');
     add('diffEditor.removedLineBackground', A(error, '10'), 'error');
-    add('diffEditorOverview.insertedForeground', A(success, '80'), 'success');
-    add('diffEditorOverview.removedForeground', A(error, '80'), 'error');
+    add('diffEditorOverview.insertedForeground', success, 'success');
+    add('diffEditorOverview.removedForeground', error, 'error');
 
     // ---- Merge conflicts
     add('merge.currentHeaderBackground', A(accent, '50'), 'accent');
@@ -445,41 +426,42 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     add('mergeEditor.change.word.background', A(accent, '30'), 'accent');
 
     // ---- Peek view
-    add('peekView.border', accent, 'accent');
-    add('peekViewEditor.background', L(bg, 0.01), 'bg');
+    add('peekView.border', A(accent, '48'), 'accent');
+    add('peekViewEditor.background', M(bg, text, 0.05), 'bg', 'text');
     add('peekViewEditor.matchHighlightBackground', A(accent, '50'), 'accent');
-    add('peekViewEditorGutter.background', L(bg, 0.01), 'bg');
+    add('peekViewEditorGutter.background', M(bg, text, 0.05), 'bg', 'text');
     add('peekViewResult.background', bgSec, 'bgSec');
     add('peekViewResult.fileForeground', text, 'text');
-    add('peekViewResult.lineForeground', L(text, -0.2), 'text');
+    add('peekViewResult.lineForeground', A(text, dim('B0', 'C0')), 'text', 'bg');
     add('peekViewResult.matchHighlightBackground', A(accent, '50'), 'accent');
     add('peekViewResult.selectionBackground', A(accent, '30'), 'accent');
     add('peekViewResult.selectionForeground', text, 'text');
     add('peekViewTitle.background', surfaceElevated, 'surfaceElevated');
-    add('peekViewTitleDescription.foreground', L(text, -0.2), 'text');
+    add('peekViewTitleDescription.foreground', A(text, dim('A0', 'C0')), 'text', 'bg');
     add('peekViewTitleLabel.foreground', text, 'text');
 
     // ---- Button & checkbox
     add('button.background', accent, 'accent');
     add('button.foreground', bg, 'bg');
-    add('button.hoverBackground', L(accent, 0.08), 'accent');
-    add('button.secondaryBackground', L(bgSec, 0.05), 'bgSec');
+    add('button.hoverBackground', M(accent, text, 0.15), 'accent', 'text');
+    add('button.secondaryBackground', M(bgSec, text, 0.1), 'bgSec', 'text');
     add('button.secondaryForeground', text, 'text');
-    add('button.secondaryHoverBackground', L(bgSec, 0.1), 'bgSec');
-    add('checkbox.background', L(bg, -0.02), 'bg');
+    add('button.secondaryHoverBackground', M(bgSec, text, 0.2), 'bgSec', 'text');
+    add('checkbox.background', A(text, '18'), 'text', 'bg');
     add('checkbox.foreground', text, 'text');
 
     // ---- Input
-    add('input.background', L(bg, -0.02), 'bg');
+    add('input.background', A(text, '10'), 'text', 'bg');
     add('input.foreground', text, 'text');
-    add('input.placeholderForeground', L(text, -0.4), 'text');
-    add('inputValidation.errorBackground', A(error, '20'), 'error');
+    add('input.placeholderForeground', A(text, '60'), 'text', 'bg');
+    // One raised surface for the three messages, as the themes do.
+    add('inputValidation.errorBackground', M(bg, text, 0.05), 'bg', 'text');
     add('inputValidation.errorForeground', text, 'text');
-    add('inputValidation.warningBackground', A(warning, '20'), 'warning');
+    add('inputValidation.warningBackground', M(bg, text, 0.05), 'bg', 'text');
     add('inputValidation.warningForeground', text, 'text');
-    add('inputValidation.infoBackground', A(accent, '20'), 'accent');
+    add('inputValidation.infoBackground', M(bg, text, 0.05), 'bg', 'text');
     add('inputValidation.infoForeground', text, 'text');
-    add('inputOption.activeBackground', A(accent, '33'), 'accent');
+    add('inputOption.activeBackground', A(accent, '20'), 'accent');
     add('inputOption.activeBorder', accent, 'accent');
     add('inputOption.activeForeground', accent, 'accent');
 
@@ -499,27 +481,27 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     add('list.focusBackground', A(accent, '22'), 'accent');
     add('list.focusForeground', text, 'text');
     add('list.focusHighlightForeground', accent, 'accent');
-    add('list.focusOutline', accent, 'accent');
+    add('list.focusOutline', A(accent, '48'), 'accent');
     add('list.highlightForeground', accent, 'accent');
     add('list.warningForeground', warning, 'warning');
     add('list.errorForeground', error, 'error');
-    add('list.filterMatchBackground', A(accent, '40'), 'accent');
+    add('list.filterMatchBackground', A(accent, '20'), 'accent');
     add('list.filterMatchBorder', accent, 'accent');
-    add('list.dropBackground', A(accent, '30'), 'accent');
+    add('list.dropBackground', A(accent, '18'), 'accent');
 
     // ---- Menu
     add('menu.background', bgSec, 'bgSec');
     add('menu.foreground', text, 'text');
     add('menu.selectionBackground', A(accent, '33'), 'accent');
     add('menu.selectionForeground', text, 'text');
-    add('menu.separatorBackground', A(text, '20'), 'text');
+    add('menu.separatorBackground', A(text, '20'), 'text', 'bgSec');
     add('menubar.selectionBackground', A(accent, '20'), 'accent');
     add('menubar.selectionForeground', text, 'text');
 
     // ---- Notifications
     add('notifications.background', bgSec, 'bgSec');
     add('notifications.foreground', text, 'text');
-    add('notificationCenterHeader.background', L(bgSec, 0.05), 'bgSec');
+    add('notificationCenterHeader.background', bgSec, 'bgSec');
     add('notificationCenterHeader.foreground', text, 'text');
     add('notificationLink.foreground', accent, 'accent');
     add('notificationsErrorIcon.foreground', error, 'error');
@@ -532,9 +514,9 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
 
     // ---- Breadcrumb
     add('breadcrumb.background', bg, 'bg');
-    add('breadcrumb.foreground', L(text, -0.2), 'text');
-    add('breadcrumb.focusForeground', accent, 'accent');
-    add('breadcrumb.activeSelectionForeground', accent, 'accent');
+    add('breadcrumb.foreground', A(text, dim('80', 'C0')), 'text', 'bg');
+    add('breadcrumb.focusForeground', text, 'text');
+    add('breadcrumb.activeSelectionForeground', text, 'text');
     add('breadcrumbPicker.background', bgSec, 'bgSec');
 
     // ---- Quick input / picker
@@ -543,7 +525,7 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     add('quickInputList.focusBackground', A(accent, '33'), 'accent');
     add('quickInputList.focusForeground', text, 'text');
     add('quickInputList.focusIconForeground', accent, 'accent');
-    add('quickInputTitle.background', L(bgSec, 0.03), 'bgSec');
+    add('quickInputTitle.background', bgSec, 'bgSec');
     add('pickerGroup.foreground', accent, 'accent');
 
     // ---- Progress bar & scrollbar
@@ -554,7 +536,7 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
 
     // ---- Text links
     add('textLink.foreground', accent, 'accent');
-    add('textLink.activeForeground', L(accent, 0.1), 'accent');
+    add('textLink.activeForeground', M(accent, text, 0.45), 'accent', 'text');
 
     // ---- Welcome page
     add('welcomePage.background', bg, 'bg');
@@ -567,33 +549,31 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     // with `needsTransparency: true`, so we always emit them with an alpha
     // channel — feeding an opaque colour back through the user's customisation
     // would only earn a "must be transparent" warning in the Advanced editor.
-    add('chat.requestBackground', L(bg, 0.02), 'bg');
+    add('chat.requestBackground', A(text, '10'), 'text', 'bg');
     add('chat.requestBorder', border, 'border');
-    add('chat.requestBubbleBackground', A(L(bgSec, 0.02), '66'), 'bgSec');
-    add('chat.requestBubbleHoverBackground', A(L(bgSec, 0.05), '99'), 'bgSec');
+    add('chat.requestBubbleBackground', A(M(bgSec, text, 0.05), '66'), 'bgSec', 'text');
+    add('chat.requestBubbleHoverBackground', A(M(bgSec, text, 0.08), '99'), 'bgSec', 'text');
     add('chat.requestCodeBorder', A(accent, '40'), 'accent');
     add('chat.editedFileForeground', accent, 'accent');
     add('chat.linesAddedForeground', A(success, 'CC'), 'success');
     add('chat.linesRemovedForeground', A(error, 'CC'), 'error');
     add('chat.slashCommandBackground', A(accent, '15'), 'accent');
     add('chat.slashCommandForeground', accent, 'accent');
-    add('chat.avatarBackground', L(bgSec, 0.03), 'bgSec');
+    add('chat.avatarBackground', M(bgSec, text, 0.1), 'bgSec', 'text');
     add('chat.avatarForeground', text, 'text');
-    add('inlineChat.background', L(bgSec, 0.02), 'bgSec');
+    add('inlineChat.background', bgSec, 'bgSec');
     add('inlineChat.border', A(accent, '40'), 'accent');
     add('inlineChatInput.border', A(accent, '40'), 'accent');
     add('inlineChatInput.focusBorder', accent, 'accent');
-    add('inlineChatInput.placeholderForeground', L(text, -0.4), 'text');
-    add('inlineChatInput.background', L(bgSec, 0.05), 'bgSec');
+    add('inlineChatInput.placeholderForeground', A(text, '60'), 'text', 'bgSec');
+    add('inlineChatInput.background', M(bgSec, text, 0.1), 'bgSec', 'text');
     add('inlineChatDiff.inserted', A(success, '18'), 'success');
     add('inlineChatDiff.removed', A(error, '18'), 'error');
 
     // ---- Ghost text / inlay hints
-    add('editorGhostText.foreground', L(text, -0.5), 'text');
+    add('editorGhostText.foreground', A(text, '78'), 'text', 'bg');
     add('editorGhostText.background', A(accent, '08'), 'accent');
-    add('editorInlayHint.foreground', L(text, -0.5), 'text');
-    add('editorInlayHint.typeForeground', A(activeBorder, 'a0'), 'activeBorder');
-    add('editorInlayHint.parameterForeground', A(info, 'a0'), 'info');
+    add('editorInlayHint.foreground', A(text, '90'), 'text', 'bg');
 
     // Borders group — only touch border keys when toggle is not INHERIT
     const BORDER_KEYS = [
@@ -680,7 +660,7 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
         colors['tab.activeBorderTop'] = '#00000000';
         colors['tab.activeBorder'] = '#00000000';
         colors['tab.unfocusedActiveBackground'] = bg;
-        colors['tab.unfocusedActiveForeground'] = L(text, -0.2);
+        colors['tab.unfocusedActiveForeground'] = A(text, dim('B0', 'C0'));
     }
 
     // ---- Vivid Selection (Tokyo Night inspired)
@@ -715,7 +695,8 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
     //   YES     → bright accent cursor with an accent-tinted line
     //             highlight and matching outline around the active line —
     //             the cursor never gets lost in any code file.
-    //   NO      → muted cursor and zero line highlight (flat editing).
+    //   NO      → muted cursor (the text colour, a little translucent) and
+    //             zero line highlight (flat editing).
     //   INHERIT → leave the keys alone.
     if (cursorLineGlow === 'yes' && accent) {
         colors['editorCursor.foreground'] = accent;
@@ -723,7 +704,7 @@ function generateQuickTheme(parsedUi, dirty, themeType) {
         colors['editor.lineHighlightBorder'] = A(accent, '60');
         colors['editorLineNumber.activeForeground'] = accent;
     } else if (cursorLineGlow === 'no' && text) {
-        colors['editorCursor.foreground'] = L(text, isLight ? 0.2 : -0.2);
+        colors['editorCursor.foreground'] = A(text, 'C0');
         colors['editor.lineHighlightBackground'] = '#00000000';
         colors['editor.lineHighlightBorder'] = '#00000000';
         colors['editorLineNumber.activeForeground'] = text;
@@ -1334,6 +1315,161 @@ function legacyToggleColors(quick, themeJson) {
     if (q['ui.activeTabHighlight'] === 'yes') {
         out['tab.activeForeground'] = q['ui.accentPrimary'];
         out['tab.unfocusedActiveForeground'] = colorUtils.mix(q['ui.baseForeground'], q['ui.accentPrimary'], 0.30);
+    } else if (q['ui.activeTabHighlight'] === 'no') {
+        out['tab.unfocusedActiveForeground'] = L(q['ui.baseForeground'], -0.2);
+    }
+    if (q['ui.cursorLineGlow'] === 'no') {
+        out['editorCursor.foreground'] = L(q['ui.baseForeground'], light ? 0.2 : -0.2);
+    }
+    return out;
+}
+
+// What 1.0.5 derived from the Quick bases for the keys whose derivation has
+// changed since (formula or sources), or that Quick no longer derives. Like
+// legacyToggleColors, it keeps those values from being taken for the user's
+// own when the layers are rebuilt. Frozen on purpose: it must not follow later
+// changes.
+const LEGACY_BASE_KEYS = (() => {
+    const L = colorUtils.adjustLightness;
+    const A = colorUtils.addAlpha;
+    return [
+        ['editor.lineHighlightBackground', 'bg', (b) => L(b.bg, 0.04)],
+        ['editor.selectionHighlightBackground', 'selection', (b) => A(b.selection, '60')],
+        ['editor.inactiveSelectionBackground', 'selection', (b) => A(b.selection, '50')],
+        ['editor.findMatchHighlightBackground', 'accent', (b) => A(b.accent, '33')],
+        ['editor.findRangeHighlightBackground', 'accent', (b) => A(b.accent, '15')],
+        ['editorCursor.foreground', 'accent', (b) => b.accent],
+        ['editorLineNumber.foreground', 'text', (b) => L(b.text, -0.4)],
+        ['editorIndentGuide.background1', 'bg', (b) => L(b.bg, 0.1)],
+        ['editorRuler.foreground', 'text', (b) => L(b.text, -0.5)],
+        ['editorWhitespace.foreground', 'text', (b) => A(b.text, '30')],
+        ['editorBracketHighlight.foreground1', 'accent', (b) => b.accent],
+        ['editorBracketHighlight.foreground2', 'info', (b) => b.info],
+        ['editorBracketHighlight.foreground3', 'success', (b) => b.success],
+        ['editorBracketHighlight.foreground4', 'warning', (b) => b.warning],
+        ['editorBracketHighlight.foreground5', 'activeBorder', (b) => b.activeBorder],
+        ['editorBracketHighlight.foreground6', 'text', (b) => A(b.text, '99')],
+        ['editorOverviewRuler.errorForeground', 'error', (b) => A(b.error, '80')],
+        ['editorOverviewRuler.warningForeground', 'warning', (b) => A(b.warning, '80')],
+        ['editorOverviewRuler.addedForeground', 'success', (b) => A(b.success, '80')],
+        ['editorOverviewRuler.deletedForeground', 'error', (b) => A(b.error, '80')],
+        ['sideBarTitle.foreground', 'text', (b) => b.text],
+        ['sideBarSectionHeader.background', 'bgSec', (b) => L(b.bgSec, 0.04)],
+        ['activityBar.inactiveForeground', 'text', (b) => L(b.text, -0.4)],
+        ['activityBarTop.inactiveForeground', 'text', (b) => L(b.text, -0.4)],
+        ['statusBar.background', 'bgSec', (b) => L(b.bgSec, -0.03)],
+        ['statusBar.foreground', 'text', (b) => L(b.text, -0.2)],
+        ['statusBar.noFolderBackground', 'bgSec', (b) => L(b.bgSec, 0.02)],
+        ['statusBar.noFolderForeground', 'text', (b) => L(b.text, -0.2)],
+        ['titleBar.inactiveBackground', 'bgSec', (b) => L(b.bgSec, -0.05)],
+        ['titleBar.inactiveForeground', 'text', (b) => L(b.text, -0.3)],
+        ['tab.inactiveForeground', 'text', (b) => L(b.text, -0.3)],
+        ['tab.hoverBackground', 'bgSec', (b) => L(b.bgSec, 0.03)],
+        ['tab.unfocusedActiveBackground', 'bg', (b) => L(b.bg, 0.02)],
+        ['tab.unfocusedActiveForeground', 'text', (b) => L(b.text, -0.2)],
+        ['tab.unfocusedInactiveForeground', 'text', (b) => L(b.text, -0.4)],
+        ['panelTitle.inactiveForeground', 'text', (b) => L(b.text, -0.3)],
+        ['panelSectionHeader.background', 'bgSec', (b) => L(b.bgSec, 0.02)],
+        ['panelSectionHeader.foreground', 'text', (b) => b.text],
+        ['terminalCursor.foreground', 'accent', (b) => b.accent],
+        ['terminal.ansiBlack', 'bg', (b) => b.bg],
+        ['terminal.ansiRed', 'error', (b) => b.error],
+        ['terminal.ansiGreen', 'success', (b) => b.success],
+        ['terminal.ansiYellow', 'warning', (b) => b.warning],
+        ['terminal.ansiBlue', 'accent', (b) => b.accent],
+        ['terminal.ansiMagenta', 'activeBorder', (b) => b.activeBorder],
+        ['terminal.ansiCyan', 'info', (b) => b.info],
+        ['terminal.ansiWhite', 'text', (b) => b.text],
+        ['terminal.ansiBrightBlack', 'bg', (b) => L(b.bg, 0.2)],
+        ['terminal.ansiBrightRed', 'error', (b) => L(b.error, 0.1)],
+        ['terminal.ansiBrightGreen', 'success', (b) => L(b.success, 0.1)],
+        ['terminal.ansiBrightYellow', 'warning', (b) => L(b.warning, 0.1)],
+        ['terminal.ansiBrightBlue', 'accent', (b) => L(b.accent, 0.1)],
+        ['terminal.ansiBrightMagenta', 'activeBorder', (b) => L(b.activeBorder, 0.1)],
+        ['terminal.ansiBrightCyan', 'info', (b) => L(b.info, 0.1)],
+        ['terminal.ansiBrightWhite', 'text', (b) => L(b.text, 0.1)],
+        ['debugIcon.breakpointDisabledForeground', 'error', (b) => L(b.error, -0.3)],
+        ['debugToolBar.background', 'bgSec', (b) => L(b.bgSec, 0.02)],
+        ['editor.stackFrameHighlightBackground', 'warning', (b) => A(b.warning, '33')],
+        ['editor.focusedStackFrameHighlightBackground', 'success', (b) => A(b.success, '33')],
+        ['gitDecoration.renamedResourceForeground', 'accent', (b) => b.accent],
+        ['gitDecoration.untrackedResourceForeground', 'success', (b) => b.success],
+        ['gitDecoration.ignoredResourceForeground', 'text', (b) => L(b.text, -0.5)],
+        ['gitDecoration.submoduleResourceForeground', 'accent', (b) => b.accent],
+        ['diffEditorOverview.insertedForeground', 'success', (b) => A(b.success, '80')],
+        ['diffEditorOverview.removedForeground', 'error', (b) => A(b.error, '80')],
+        ['peekView.border', 'accent', (b) => b.accent],
+        ['peekViewEditor.background', 'bg', (b) => L(b.bg, 0.01)],
+        ['peekViewEditorGutter.background', 'bg', (b) => L(b.bg, 0.01)],
+        ['peekViewResult.lineForeground', 'text', (b) => L(b.text, -0.2)],
+        ['peekViewTitleDescription.foreground', 'text', (b) => L(b.text, -0.2)],
+        ['button.hoverBackground', 'accent', (b) => L(b.accent, 0.08)],
+        ['button.secondaryBackground', 'bgSec', (b) => L(b.bgSec, 0.05)],
+        ['button.secondaryHoverBackground', 'bgSec', (b) => L(b.bgSec, 0.1)],
+        ['checkbox.background', 'bg', (b) => L(b.bg, -0.02)],
+        ['input.background', 'bg', (b) => L(b.bg, -0.02)],
+        ['input.placeholderForeground', 'text', (b) => L(b.text, -0.4)],
+        ['inputValidation.errorBackground', 'error', (b) => A(b.error, '20')],
+        ['inputValidation.warningBackground', 'warning', (b) => A(b.warning, '20')],
+        ['inputValidation.infoBackground', 'accent', (b) => A(b.accent, '20')],
+        ['inputOption.activeBackground', 'accent', (b) => A(b.accent, '33')],
+        ['list.focusOutline', 'accent', (b) => b.accent],
+        ['list.filterMatchBackground', 'accent', (b) => A(b.accent, '40')],
+        ['list.dropBackground', 'accent', (b) => A(b.accent, '30')],
+        ['notificationCenterHeader.background', 'bgSec', (b) => L(b.bgSec, 0.05)],
+        ['breadcrumb.foreground', 'text', (b) => L(b.text, -0.2)],
+        ['breadcrumb.focusForeground', 'accent', (b) => b.accent],
+        ['breadcrumb.activeSelectionForeground', 'accent', (b) => b.accent],
+        ['quickInputTitle.background', 'bgSec', (b) => L(b.bgSec, 0.03)],
+        ['textLink.activeForeground', 'accent', (b) => L(b.accent, 0.1)],
+        ['chat.requestBackground', 'bg', (b) => L(b.bg, 0.02)],
+        ['chat.requestBubbleBackground', 'bgSec', (b) => A(L(b.bgSec, 0.02), '66')],
+        ['chat.requestBubbleHoverBackground', 'bgSec', (b) => A(L(b.bgSec, 0.05), '99')],
+        ['chat.avatarBackground', 'bgSec', (b) => L(b.bgSec, 0.03)],
+        ['inlineChat.background', 'bgSec', (b) => L(b.bgSec, 0.02)],
+        ['inlineChatInput.placeholderForeground', 'text', (b) => L(b.text, -0.4)],
+        ['inlineChatInput.background', 'bgSec', (b) => L(b.bgSec, 0.05)],
+        ['editorGhostText.foreground', 'text', (b) => L(b.text, -0.5)],
+        ['editorInlayHint.foreground', 'text', (b) => L(b.text, -0.5)],
+        ['editorInlayHint.typeForeground', 'activeBorder', (b) => A(b.activeBorder, 'a0')],
+        ['editorInlayHint.parameterForeground', 'info', (b) => A(b.info, 'a0')],
+        ['menu.separatorBackground', 'text', (b) => A(b.text, '20')],
+    ];
+})();
+
+// Keys the bases derive that 1.0.5 left to the theme.
+const NEW_BASE_KEYS = ['minimap.background', 'editorStickyScroll.background', 'editorWidget.resizeBorder'];
+const LEGACY_BASE_KEY_SET = new Set([...LEGACY_BASE_KEYS.map(([key]) => key), ...NEW_BASE_KEYS]);
+
+// Keys now derived for `quick` that 1.0.5 left to the theme: their derivation
+// changed, and 1.0.5 wrote them neither from a base nor through a toggle.
+// The theme's value for them in the old outputs is the theme's, not the user's.
+function newlyDerivedKeys(quick, themeJson, derived) {
+    const old = legacyBaseColors(quick, themeJson);
+    const toggled = generateQuickTheme(expandQuick(quick, themeJson), {}, themeJson.type).colors;
+    return Object.keys(derived).filter(key => LEGACY_BASE_KEY_SET.has(key) && !(key in old) && !(key in toggled));
+}
+
+function legacyBaseColors(quick, themeJson) {
+    const q = expandQuick(quick, themeJson);
+    const bases = extractBaseColorsFromTheme(themeJson);
+    const b = {};
+    const dirty = {};
+    for (const [key, base] of QUICK_BASES) {
+        b[base] = q[key];
+        dirty[base] = !sameColor(q[key], bases[base]);
+    }
+    const out = {};
+    for (const [key, dep, value] of LEGACY_BASE_KEYS) {
+        if (dirty[dep]) out[key] = value(b);
+    }
+    return out;
+}
+
+function dropThemeValues(ui, keys, themeJson) {
+    const out = { ...ui };
+    for (const key of keys) {
+        if (sameColor(out[key], (themeJson.colors || {})[key])) delete out[key];
     }
     return out;
 }
@@ -1341,7 +1477,8 @@ function legacyToggleColors(quick, themeJson) {
 // Earlier versions kept no state: the outputs were the only record, Advanced
 // wrote the whole theme into them, and the Quick file alone held the toggles.
 // The layers are rebuilt from both so the colours on screen do not change,
-// except those an older toggle wrote: they follow the toggle as it is now.
+// except those an older version derived: they follow the derivation as it is
+// now.
 async function loadThemeState(context, themeLabel, themeJson) {
     const stored = readStoredState(themeLabel);
     if (stored) return stored;
@@ -1360,7 +1497,9 @@ async function loadThemeState(context, themeLabel, themeJson) {
     const derived = deriveQuickColors(expandQuick(quick, themeJson), themeJson);
     const state = compactState({
         quick,
-        ui: diffColors(diffColors(cc, { ...(themeJson.colors || {}), ...derived }), legacyToggleColors(quick, themeJson)),
+        ui: dropThemeValues([legacyToggleColors(quick, themeJson), legacyBaseColors(quick, themeJson)]
+            .reduce(diffColors, diffColors(cc, { ...(themeJson.colors || {}), ...derived })),
+        newlyDerivedKeys(quick, themeJson, derived), themeJson),
         semantic: diffSemantic({ ...(tc && tc.semanticTokenColors), ...(sc && sc.rules) }, themeJson.semanticTokenColors),
         textMate: diffTextMate(tc && tc.textMateRules, themeJson.tokenColors),
     });
@@ -2506,6 +2645,8 @@ module.exports.__testing = {
     withOwnedPart,
     readStoredState,
     legacyToggleColors,
+    legacyBaseColors,
+    newlyDerivedKeys,
     loadThemeState,
     saveThemeState,
 };
