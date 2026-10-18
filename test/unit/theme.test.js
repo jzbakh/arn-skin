@@ -416,8 +416,10 @@ describe('generateQuickTheme — cursorLineGlow toggle', () => {
         const out = generateQuickTheme(parsed, noneDirty);
         assert.equal(out.colors['editorCursor.foreground'], '#007ACC',
             'cursor must take the accent colour');
-        assert.equal(out.colors['editorLineNumber.activeForeground'], '#007ACC',
-            'active line number must take the accent colour');
+        // #007ACC reads at 3.8:1 on #1E1E1E: pulled toward the text to 4.5:1.
+        assert.equal(out.colors['editorLineNumber.activeForeground'],
+            __testing.colorUtils.readable('#007ACC', '#1E1E1E', '#D4D4D4'),
+            'active line number must take the accent colour, made readable');
         const lineBg = out.colors['editor.lineHighlightBackground'];
         const lineBorder = out.colors['editor.lineHighlightBorder'];
         assert.ok(lineBg && lineBg.toUpperCase().startsWith('#007ACC'),

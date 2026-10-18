@@ -284,6 +284,18 @@ describe('Pure-Black with Active-Tab', () => {
     });
 });
 
+describe('Cursor-Line-Glow YES', () => {
+    it('keeps the active line number readable, and the accent where it already is', () => {
+        for (const th of themes) {
+            const colors = derive(th, { 'ui.cursorLineGlow': 'yes' });
+            const number = colors['editorLineNumber.activeForeground'];
+            const under = colors['editor.background'] || th.bases.bg;
+            assert.ok(contrast(number, under) >= 4.5 || t.sameColor(number, th.bases.text), `${th.file}: ${number}`);
+            if (contrast(th.bases.accent, under) >= 4.5) assert.ok(t.sameColor(number, th.bases.accent), th.file);
+        }
+    });
+});
+
 describe('Colours 1.0.5 derived from the Quick bases', () => {
     const th = theme('spaceport');
 

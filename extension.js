@@ -743,7 +743,9 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     // ---- Cursor & Active Line Glow
     //   YES     → bright accent cursor with an accent-tinted line
     //             highlight and matching outline around the active line —
-    //             the cursor never gets lost in any code file.
+    //             the cursor never gets lost in any code file. The active
+    //             line number is pulled toward the text colour when the
+    //             accent would read below 4.5:1 (gold on Jupiter's cream).
     //   NO      → muted cursor (the text colour, a little translucent) and
     //             zero line highlight (flat editing).
     //   INHERIT → leave the keys alone.
@@ -751,7 +753,7 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
         colors['editorCursor.foreground'] = accent;
         colors['editor.lineHighlightBackground'] = A(accent, '20');
         colors['editor.lineHighlightBorder'] = A(accent, '60');
-        colors['editorLineNumber.activeForeground'] = accent;
+        colors['editorLineNumber.activeForeground'] = colorUtils.readable(accent, colors['editor.background'] || bg, text);
     } else if (cursorLineGlow === 'no' && text) {
         colors['editorCursor.foreground'] = A(text, 'C0');
         colors['editor.lineHighlightBackground'] = '#00000000';
@@ -1432,7 +1434,9 @@ function legacyToggleColors(quick, themeJson) {
         out['editor.selectionHighlightBackground'] = A('30');
         out['editor.inactiveSelectionBackground'] = A('28');
     }
-    if (q['ui.cursorLineGlow'] === 'no') {
+    if (q['ui.cursorLineGlow'] === 'yes') {
+        out['editorLineNumber.activeForeground'] = q['ui.accentPrimary'];
+    } else if (q['ui.cursorLineGlow'] === 'no') {
         out['editorCursor.foreground'] = L(q['ui.baseForeground'], light ? 0.2 : -0.2);
     }
     return out;
