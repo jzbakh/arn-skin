@@ -193,6 +193,22 @@ function extractBaseColorsFromTheme(themeJson) {
 // decisions the user did not intend to change.
 // =========================================================================
 
+// The theme's other surfaces Pure-Black darkens, each from its own colour:
+// the code-area ones as much as the editor, the floating ones as the widgets.
+const PURE_BLACK_AREAS = [
+    'tab.unfocusedActiveBackground', 'tab.unfocusedInactiveBackground', 'editorGroupHeader.noTabsBackground',
+    'editorStickyScroll.background', 'minimap.background', 'editorGutter.background', 'sideBarSectionHeader.background',
+    'panelSectionHeader.background', 'peekViewEditor.background', 'peekViewEditorGutter.background',
+    'peekViewResult.background', 'welcomePage.background', 'statusBar.noFolderBackground',
+    'notificationCenterHeader.background', 'quickInputTitle.background', 'textBlockQuote.background',
+    'editorHoverWidget.statusBarBackground',
+];
+const PURE_BLACK_WIDGETS = [
+    'editorStickyScrollHover.background', 'peekViewTitle.background', 'breadcrumbPicker.background',
+    'dropdown.listBackground', 'editorMarkerNavigation.background', 'debugToolBar.background',
+    'debugExceptionWidget.background', 'inlineChat.background',
+];
+
 // The keys the Borderless toggle and a Borders colour draw.
 const BORDER_KEYS = [
     'sideBar.border', 'panel.border', 'editorGroup.border',
@@ -611,7 +627,10 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     //   YES     → darken the code area and side panels halfway to black
     //             (to white on light themes), and the widgets less so they
     //             stand out from the editor. The theme keeps its hue —
-    //             Nebula stays violet-black, Mars warm.
+    //             Nebula stays violet-black, Mars warm. Every other surface
+    //             the theme paints (section headers, sticky scroll, minimap,
+    //             peek view...) is darkened the same way from its own
+    //             colour, so none stands out lighter than the editor.
     //   NO      → keep the theme's own backgrounds: nothing is written,
     //             as with INHERIT.
     //   INHERIT → leave the keys alone.
@@ -644,6 +663,15 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
         colors['menu.background'] = lift;
         colors['notifications.background'] = lift;
         colors['input.background'] = lift;
+        // From the colour the bases derive for it when they do, else the theme's.
+        const darken = (keys, ratio) => {
+            for (const key of keys) {
+                const shown = toRgba8(colors[key] || themeColors[key]);
+                if (shown && shown.endsWith('FF')) colors[key] = M(shown.slice(0, 7), extreme, ratio);
+            }
+        };
+        darken(PURE_BLACK_AREAS, 0.5);
+        darken(PURE_BLACK_WIDGETS, 0.3);
     }
 
     // ---- Active Tab Highlight (Material Theme inspired)
@@ -652,12 +680,15 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     //             Active-Border colour when the user set one. The label is
     //             pulled toward the text colour when the accent would read
     //             below 4.5:1 (gold on Jupiter's cream).
-    //   NO      → plain active tab: the theme's base background and text
+    //   NO      → plain active tab: the editor's background and the text
     //             colour, no accent tint or border.
     //   INHERIT → leave the keys alone.
+    // The tab starts from the editor's background, the one Pure-Black
+    // darkened: it would otherwise stand out lighter than the editor below.
+    const tabBase = colors['editor.background'] || bg;
     if (activeTabHighlight === 'yes' && accent && bg) {
-        const activeBg = M(bg, accent, 0.10);
-        const unfocusedBg = M(bg, accent, 0.05);
+        const activeBg = M(tabBase, accent, 0.10);
+        const unfocusedBg = M(tabBase, accent, 0.05);
         colors['tab.activeBackground'] = activeBg;
         colors['tab.activeForeground'] = colorUtils.readable(accent, activeBg, text);
         const border = dirty.activeBorder ? activeBorder : accent;
@@ -666,11 +697,11 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
         colors['tab.unfocusedActiveBackground'] = unfocusedBg;
         colors['tab.unfocusedActiveForeground'] = colorUtils.readable(M(text, accent, 0.30), unfocusedBg, text);
     } else if (activeTabHighlight === 'no' && bg) {
-        colors['tab.activeBackground'] = bg;
+        colors['tab.activeBackground'] = tabBase;
         colors['tab.activeForeground'] = text;
         colors['tab.activeBorderTop'] = '#00000000';
         colors['tab.activeBorder'] = '#00000000';
-        colors['tab.unfocusedActiveBackground'] = bg;
+        colors['tab.unfocusedActiveBackground'] = tabBase;
         colors['tab.unfocusedActiveForeground'] = A(text, dim('B0', 'C0'));
     }
 
@@ -1384,11 +1415,15 @@ function legacyToggleColors(quick, themeJson) {
         out['editor.wordHighlightStrongBackground'] = A('48');
     }
     if (q['ui.activeTabHighlight'] === 'yes') {
+        out['tab.activeBackground'] = colorUtils.mix(q['ui.baseBackground'], q['ui.accentPrimary'], 0.10);
+        out['tab.unfocusedActiveBackground'] = colorUtils.mix(q['ui.baseBackground'], q['ui.accentPrimary'], 0.05);
         out['tab.activeForeground'] = q['ui.accentPrimary'];
         out['tab.unfocusedActiveForeground'] = colorUtils.mix(q['ui.baseForeground'], q['ui.accentPrimary'], 0.30);
         out['tab.activeBorderTop'] = q['ui.accentPrimary'];
         out['tab.activeBorder'] = q['ui.accentPrimary'];
     } else if (q['ui.activeTabHighlight'] === 'no') {
+        out['tab.activeBackground'] = q['ui.baseBackground'];
+        out['tab.unfocusedActiveBackground'] = q['ui.baseBackground'];
         out['tab.unfocusedActiveForeground'] = L(q['ui.baseForeground'], -0.2);
     }
     if (q['ui.vividSelection'] === 'yes') {
@@ -1521,10 +1556,12 @@ const LEGACY_BASE_KEYS = (() => {
 // Keys the bases derive that 1.0.5 left to the theme.
 const NEW_BASE_KEYS = ['minimap.background', 'editorStickyScroll.background', 'editorWidget.resizeBorder'];
 // Besides those, 1.0.5 left the borders to the theme while Borderless-Mode was
-// INHERIT, whatever the Borders colour.
-const NEWLY_DERIVED_CANDIDATES = new Set([...LEGACY_BASE_KEYS.map(([key]) => key), ...NEW_BASE_KEYS, ...BORDER_KEYS]);
-// Borders the toggle draws now that 1.0.5's toggle never wrote.
-const UNTOGGLED_IN_1_0_5 = new Set(['panelInput.border', 'chat.requestBorder']);
+// INHERIT, whatever the Borders colour, and Pure-Black left the theme's other
+// surfaces alone.
+const NEWLY_DERIVED_CANDIDATES = new Set([...LEGACY_BASE_KEYS.map(([key]) => key), ...NEW_BASE_KEYS, ...BORDER_KEYS,
+    ...PURE_BLACK_AREAS, ...PURE_BLACK_WIDGETS]);
+// Keys the toggles write now that 1.0.5's toggles never wrote.
+const UNTOGGLED_IN_1_0_5 = new Set(['panelInput.border', 'chat.requestBorder', ...PURE_BLACK_AREAS, ...PURE_BLACK_WIDGETS]);
 
 // Keys now derived for `quick` that 1.0.5 left to the theme: their derivation
 // changed, and 1.0.5 wrote them neither from a base nor through a toggle.
@@ -1560,6 +1597,20 @@ function dropThemeValues(ui, keys, themeJson) {
     return out;
 }
 
+// What 1.0.5 wrote for the surfaces Pure-Black now darkens too: the colour the
+// bases alone derive for them, as 1.0.5 darkened none of them. It derived the
+// LEGACY_BASE_KEYS otherwise (legacyBaseColors) and left NEW_BASE_KEYS alone.
+function legacyPureBlackSurfaces(quick, themeJson) {
+    if (expandQuick(quick, themeJson)['ui.pureBlack'] !== 'yes') return {};
+    const plain = deriveQuickColors(expandQuick({ ...quick, 'ui.pureBlack': 'inherit' }, themeJson), themeJson);
+    const elsewhere = new Set([...LEGACY_BASE_KEYS.map(([key]) => key), ...NEW_BASE_KEYS]);
+    const out = {};
+    for (const key of [...PURE_BLACK_AREAS, ...PURE_BLACK_WIDGETS]) {
+        if (key in plain && !elsewhere.has(key)) out[key] = plain[key];
+    }
+    return out;
+}
+
 // Earlier versions kept no state: the outputs were the only record, Advanced
 // wrote the whole theme into them, and the Quick file alone held the toggles.
 // The layers are rebuilt from both so the colours on screen do not change,
@@ -1583,7 +1634,7 @@ async function loadThemeState(context, themeLabel, themeJson) {
     const derived = deriveQuickColors(expandQuick(quick, themeJson), themeJson);
     const state = compactState({
         quick,
-        ui: dropThemeValues([legacyToggleColors(quick, themeJson), legacyBaseColors(quick, themeJson)]
+        ui: dropThemeValues([legacyToggleColors(quick, themeJson), legacyBaseColors(quick, themeJson), legacyPureBlackSurfaces(quick, themeJson)]
             .reduce(diffColors, diffColors(cc, { ...(themeJson.colors || {}), ...derived })),
         newlyDerivedKeys(quick, themeJson, derived), themeJson),
         semantic: diffSemantic({ ...(tc && tc.semanticTokenColors), ...(sc && sc.rules) }, themeJson.semanticTokenColors),
@@ -2766,6 +2817,7 @@ module.exports.__testing = {
     readStoredState,
     legacyToggleColors,
     legacyBaseColors,
+    legacyPureBlackSurfaces,
     newlyDerivedKeys,
     loadThemeState,
     saveThemeState,

@@ -228,6 +228,62 @@ describe('Quick derivations — a colour the user set wins over a display option
     });
 });
 
+describe('Pure-Black with Active-Tab', () => {
+    it('starts the active tab from the darkened editor, not the lighter theme background', () => {
+        for (const th of themes) {
+            for (const tab of ['yes', 'no']) {
+                const colors = derive(th, { 'ui.pureBlack': 'yes', 'ui.activeTabHighlight': tab });
+                const editor = colors['editor.background'];
+                const expected = tab === 'yes' ? M(editor, th.bases.accent, 0.10) : editor;
+                assert.ok(t.sameColor(colors['tab.activeBackground'], expected), `${th.file} ${tab}: ${colors['tab.activeBackground']}`);
+            }
+        }
+    });
+
+    it('darkens every other surface the theme paints from its own colour', () => {
+        for (const th of themes) {
+            const colors = derive(th, { 'ui.pureBlack': 'yes' });
+            const extreme = th.light ? '#FFFFFF' : '#000000';
+            for (const [key, ratio] of [['sideBarSectionHeader.background', 0.5], ['minimap.background', 0.5],
+                ['editorStickyScroll.background', 0.5], ['peekViewEditorGutter.background', 0.5],
+                ['peekViewTitle.background', 0.3]]) {
+                const theirs = th.json.colors[key];
+                if (!theirs || normalizeHex(theirs).length === 9) continue;
+                assert.ok(t.sameColor(colors[key], M(theirs, extreme, ratio)), `${th.file} ${key}: ${colors[key]}`);
+            }
+        }
+        // Nebula's violet section header, lighter than its darkened editor before.
+        const nebula = derive(theme('nebula'), { 'ui.pureBlack': 'yes' });
+        assert.ok(contrast(nebula['sideBarSectionHeader.background'], '#000000') < contrast(theme('nebula').json.colors['sideBarSectionHeader.background'], '#000000'));
+    });
+
+    it('darkens a surface the bases derive from that colour, not the theme\'s', () => {
+        const th = theme('spaceport');
+        const colors = derive(th, { 'ui.pureBlack': 'yes', 'ui.baseBackground': '#151B26' });
+        assert.ok(t.sameColor(colors['welcomePage.background'], M('#151B26', '#000000', 0.5)), colors['welcomePage.background']);
+        const legacy = t.legacyPureBlackSurfaces({ 'ui.pureBlack': 'yes', 'ui.baseBackground': '#151B26' }, th.json);
+        assert.ok(t.sameColor(legacy['welcomePage.background'], '#151B26'), 'what 1.0.5 wrote');
+        for (const key of ['minimap.background', 'editorStickyScroll.background']) {
+            assert.equal(colors[key], colors['editor.background'], `${key}: no band beside the code`);
+            assert.equal(legacy[key], undefined, `${key}: 1.0.5 left it to the theme`);
+        }
+        const sec = t.legacyPureBlackSurfaces({ 'ui.pureBlack': 'yes', 'ui.secondaryBackground': '#202733' }, th.json);
+        assert.equal(sec['sideBarSectionHeader.background'], undefined, 'legacyBaseColors gives back what 1.0.5 derived for it');
+    });
+
+    it('takes a theme copy 1.0.5 left on those surfaces for the theme\'s, not the user\'s', () => {
+        const th = theme('nebula');
+        const quick = { 'ui.pureBlack': 'yes' };
+        assert.ok(t.newlyDerivedKeys(quick, th.json, derive(th, quick)).includes('sideBarSectionHeader.background'));
+    });
+
+    it('gives back the lighter tab 1.0.5 wrote, so it follows the toggle', () => {
+        const th = theme('nebula');
+        const legacy = t.legacyToggleColors({ 'ui.pureBlack': 'yes', 'ui.activeTabHighlight': 'yes' }, th.json);
+        assert.ok(t.sameColor(legacy['tab.activeBackground'], M(th.bases.bg, th.bases.accent, 0.10)));
+    });
+});
+
 describe('Colours 1.0.5 derived from the Quick bases', () => {
     const th = theme('spaceport');
 
