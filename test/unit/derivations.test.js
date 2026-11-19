@@ -167,6 +167,48 @@ describe('Quick derivations — palettes each theme picks for itself', () => {
     });
 });
 
+describe('Quick derivations — the status colours', () => {
+    const MARKS = {
+        'status.error': ['editorError.foreground', 'editorOverviewRuler.errorForeground', 'minimap.errorHighlight',
+            'problemsErrorIcon.foreground', 'editorMarkerNavigationError.background', 'minimapGutter.deletedBackground'],
+        'status.warning': ['editorWarning.foreground', 'editorOverviewRuler.warningForeground', 'minimap.warningHighlight',
+            'problemsWarningIcon.foreground', 'editorMarkerNavigationWarning.background'],
+        'status.info': ['editorInfo.foreground', 'editorOverviewRuler.infoForeground', 'problemsInfoIcon.foreground',
+            'editorMarkerNavigationInfo.background'],
+    };
+
+    it('paint their own squiggles and problem marks whatever the display options, the accent none', () => {
+        for (const th of themes) {
+            for (const toggle of ['inherit', 'yes', 'no']) {
+                const toggles = { 'ui.vividSelection': toggle, 'ui.cursorLineGlow': toggle, 'ui.activeTabHighlight': toggle,
+                    'ui.pureBlack': toggle, 'ui.borderless': toggle };
+                for (const base of [...Object.keys(MARKS), 'ui.accentPrimary']) {
+                    const colors = derive(th, { [base]: '#D34CE8', ...toggles });
+                    for (const [own, keys] of Object.entries(MARKS)) {
+                        for (const key of keys) {
+                            assert.equal(colors[key], own === base ? '#D34CE8' : undefined, `${th.file} ${toggle} ${base}: ${key}`);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    it('paint them as the themes do, in the status colour itself', () => {
+        for (const th of themes) {
+            const defaults = t.quickDefaults(th.json);
+            for (const [base, keys] of Object.entries(MARKS)) {
+                for (const key of keys.filter(k => !/^editor(OverviewRuler|MarkerNavigation)/.test(k))) {
+                    assert.ok(t.sameColor(th.json.colors[key], defaults[base]), `${th.file} ${key}: ${th.json.colors[key]}`);
+                }
+            }
+            // VS Code draws these in editorInfo.foreground and editorError.foreground.
+            assert.equal(th.json.colors['minimap.infoHighlight'], undefined, th.file);
+            assert.equal(th.json.colors['editorGutter.deletedBackground'], undefined, th.file);
+        }
+    });
+});
+
 describe('Quick derivations — a colour the user set wins over a display option', () => {
     const th = theme('spaceport');
 
@@ -346,6 +388,25 @@ describe('Colours 1.0.5 derived from the Quick bases', () => {
         const neptune = theme('neptune').json;
         assert.equal(t.legacyToggleColors({ 'ui.borders': '#00000000', 'ui.borderless': 'no' }, neptune)['menu.border'], '#00000000',
             'a Borders colour set in Quick');
+    });
+
+    it('gives back the info marks 1.0.5 drew in the accent on the overview ruler', () => {
+        assert.equal(t.legacyBaseColors({ 'ui.accentPrimary': '#D34CE8' }, th.json)['editorOverviewRuler.infoForeground'], '#D34CE880');
+    });
+
+    it('names the diagnostics marks the status colours now paint', () => {
+        const quick = { 'status.error': '#FF3355', 'status.warning': '#FFB000', 'status.info': '#33AAFF' };
+        const keys = t.newlyDerivedKeys(quick, th.json, derive(th, quick));
+        for (const key of ['editorError.foreground', 'editorWarning.foreground', 'editorInfo.foreground',
+            'problemsErrorIcon.foreground', 'problemsWarningIcon.foreground', 'problemsInfoIcon.foreground',
+            'editorMarkerNavigationError.background', 'editorMarkerNavigationWarning.background',
+            'editorMarkerNavigationInfo.background', 'minimap.errorHighlight', 'minimap.warningHighlight',
+            'minimapGutter.deletedBackground', 'editorOverviewRuler.infoForeground']) {
+            assert.ok(keys.includes(key), key);
+        }
+        const accent = { ...quick, 'ui.accentPrimary': '#D34CE8' };
+        assert.ok(!t.newlyDerivedKeys(accent, th.json, derive(th, accent)).includes('editorOverviewRuler.infoForeground'),
+            '1.0.5 drew it from the accent');
     });
 
     it('gives back what the toggles wrote before their muted colours changed', () => {

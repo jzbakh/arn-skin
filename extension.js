@@ -226,6 +226,18 @@ const BORDER_KEYS = [
     'panelInput.border', 'chat.requestBorder'
 ];
 
+// The diagnostics marks a status colour paints besides the overview ruler, as
+// the themes do; 1.0.5 left them to the theme. VS Code draws the editor
+// gutter's deleted lines in editorError.foreground, so the minimap's follow.
+const STATUS_MARKERS = [
+    ['editorError.foreground', 'error'], ['editorWarning.foreground', 'warning'], ['editorInfo.foreground', 'info'],
+    ['problemsErrorIcon.foreground', 'error'], ['problemsWarningIcon.foreground', 'warning'],
+    ['problemsInfoIcon.foreground', 'info'], ['editorMarkerNavigationError.background', 'error'],
+    ['editorMarkerNavigationWarning.background', 'warning'], ['editorMarkerNavigationInfo.background', 'info'],
+    ['minimap.errorHighlight', 'error'], ['minimap.warningHighlight', 'warning'],
+    ['minimapGutter.deletedBackground', 'error'],
+];
+
 function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     const bg = parsedUi["ui.baseBackground"];
     const text = parsedUi["ui.baseForeground"];
@@ -328,13 +340,17 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     add('editorOverviewRuler.findMatchForeground', A(accent, '80'), 'accent');
     add('editorOverviewRuler.errorForeground', error, 'error');
     add('editorOverviewRuler.warningForeground', warning, 'warning');
-    add('editorOverviewRuler.infoForeground', A(accent, '80'), 'accent');
+    add('editorOverviewRuler.infoForeground', info, 'info');
     add('editorOverviewRuler.addedForeground', success, 'success');
     add('editorOverviewRuler.deletedForeground', error, 'error');
     add('editorOverviewRuler.modifiedForeground', A(accent, '80'), 'accent');
     add('editorOverviewRuler.selectionHighlightForeground', A(accent, '60'), 'accent');
     add('editorOverviewRuler.wordHighlightForeground', A(accent, '60'), 'accent');
     add('editorOverviewRuler.wordHighlightStrongForeground', A(accent, '80'), 'accent');
+
+    // ---- Diagnostics
+    const status = { error, warning, info };
+    for (const [key, base] of STATUS_MARKERS) add(key, status[base], base);
 
     // ---- Editor widgets — surface-elevated palette
     add('editorWidget.background', surfaceElevated, 'surfaceElevated');
@@ -1469,6 +1485,7 @@ const LEGACY_BASE_KEYS = (() => {
         ['editorBracketHighlight.foreground6', 'text', (b) => A(b.text, '99')],
         ['editorOverviewRuler.errorForeground', 'error', (b) => A(b.error, '80')],
         ['editorOverviewRuler.warningForeground', 'warning', (b) => A(b.warning, '80')],
+        ['editorOverviewRuler.infoForeground', 'accent', (b) => A(b.accent, '80')],
         ['editorOverviewRuler.addedForeground', 'success', (b) => A(b.success, '80')],
         ['editorOverviewRuler.deletedForeground', 'error', (b) => A(b.error, '80')],
         ['sideBarTitle.foreground', 'text', (b) => b.text],
@@ -1560,10 +1577,10 @@ const LEGACY_BASE_KEYS = (() => {
 // Keys the bases derive that 1.0.5 left to the theme.
 const NEW_BASE_KEYS = ['minimap.background', 'editorStickyScroll.background', 'editorWidget.resizeBorder'];
 // Besides those, 1.0.5 left the borders to the theme while Borderless-Mode was
-// INHERIT, whatever the Borders colour, and Pure-Black left the theme's other
-// surfaces alone.
+// INHERIT, whatever the Borders colour, Pure-Black left the theme's other
+// surfaces alone, and the status colours left the diagnostics marks alone.
 const NEWLY_DERIVED_CANDIDATES = new Set([...LEGACY_BASE_KEYS.map(([key]) => key), ...NEW_BASE_KEYS, ...BORDER_KEYS,
-    ...PURE_BLACK_AREAS, ...PURE_BLACK_WIDGETS]);
+    ...PURE_BLACK_AREAS, ...PURE_BLACK_WIDGETS, ...STATUS_MARKERS.map(([key]) => key)]);
 // Keys the toggles write now that 1.0.5's toggles never wrote.
 const UNTOGGLED_IN_1_0_5 = new Set(['panelInput.border', 'chat.requestBorder', ...PURE_BLACK_AREAS, ...PURE_BLACK_WIDGETS]);
 
