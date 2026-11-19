@@ -196,7 +196,7 @@ describe('buildQuickCssContent', () => {
         assert.ok(out.includes('YES: Highlights the active tab'));
         assert.ok(out.includes('NO:  Keeps all tabs uniform'));
         assert.ok(out.includes('YES: Enables accent-colored background for selected text'));
-        assert.ok(out.includes('NO:  Uses a neutral grey selection'));
+        assert.ok(out.includes('NO:  Uses a neutral gray selection'));
         assert.ok(out.includes('YES: Highlights current line and cursor'));
         assert.ok(out.includes('NO:  Removes the line highlight entirely'));
     });
@@ -205,7 +205,7 @@ describe('buildQuickCssContent', () => {
         const out = buildQuickCssContent(baseValues, toggles);
         assert.ok(out.includes('DISPLAY OPTIONS (Accepted values: YES / NO / INHERIT)'),
             'header must spell out the accepted values');
-        assert.ok(out.includes("INHERIT = keep the theme's default behaviour"),
+        assert.ok(out.includes("INHERIT = keep the theme's default behavior"),
             'INHERIT explanation must remain near the toggles');
     });
 

@@ -907,7 +907,7 @@ function buildQuickCssContent(baseValues, toggles) {
     /* DISPLAY OPTIONS (Accepted values: YES / NO / INHERIT)     */
     /* ========================================================= */
 
-  /* INHERIT = keep the theme's default behaviour */
+  /* INHERIT = keep the theme's default behavior */
 
   /* YES: Highlights current line and cursor with an accent glow.
      NO:  Removes the line highlight entirely. */
@@ -918,7 +918,7 @@ function buildQuickCssContent(baseValues, toggles) {
     --Opt-Pure-Black-Mode:    ${toggles.pureBlack};
 
   /* YES: Enables accent-colored background for selected text.
-     NO:  Uses a neutral grey selection, tuned for readability. */
+     NO:  Uses a neutral gray selection, tuned for readability. */
     --Opt-Vivid-Selection:    ${toggles.vividSelection};
 
   /* YES: Hides all UI borders (panels, tabs, side bar, widgets).
@@ -1564,7 +1564,7 @@ function activate(context) {
         if (now - lastNotifiedAt < RATE_LIMIT_MS) return;
         lastNotifiedAt = now;
         const msg = (err && err.message) ? err.message : String(err);
-        vscode.window.showErrorMessage(`ARN-Skin: failed to apply customisation — ${msg}`);
+        vscode.window.showErrorMessage(`ARN-Skin: failed to apply customization — ${msg}`);
     };
 
     // One-shot warning when the Quick CSS has missing variables (rare but
