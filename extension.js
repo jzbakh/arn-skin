@@ -911,19 +911,19 @@ function buildQuickCssContent(baseValues, toggles) {
 
   /* YES: Highlights current line and cursor with an accent glow.
      NO:  Removes the line highlight entirely. */
-    --Opt-Cursor-Line-Glow:   ${toggles.cursorLineGlow};
+    --Opt-Cursor-Line-Glow:     ${toggles.cursorLineGlow};
 
   /* YES: Enables maximum-contrast surfaces.
      NO:  Softens the background contrast to reduce eye strain. */
-    --Opt-Pure-Black-Mode:    ${toggles.pureBlack};
+    --Opt-Pure-Black-Mode:      ${toggles.pureBlack};
 
   /* YES: Enables accent-colored background for selected text.
      NO:  Uses a neutral gray selection, tuned for readability. */
-    --Opt-Vivid-Selection:    ${toggles.vividSelection};
+    --Opt-Vivid-Selection:      ${toggles.vividSelection};
 
   /* YES: Hides all UI borders (panels, tabs, side bar, widgets).
      NO:  Applies a subtle, text-tinted border. */
-    --Opt-Borderless-Mode:    ${toggles.borderless};
+    --Opt-Borderless-Mode:      ${toggles.borderless};
 
   /* YES: Highlights the active tab with an accent background,
           text color, and top/bottom borders.
