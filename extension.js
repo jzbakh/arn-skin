@@ -2726,6 +2726,71 @@ async function importThemes(context, themes, skipReapplySet) {
 }
 
 // =========================================================================
+// SUPPORT PROMPT — a GitHub star or a store review, once per minor version
+// =========================================================================
+
+const SUPPORT_PROMPT = {
+    STATE_KEY: 'supportPrompt.shownFor',
+    // Ask once the user is settled in with an ARN theme, not while the window starts.
+    DELAY_MS: 45000,
+    MESSAGE: 'Enjoying ARN-Skin? A quick ⭐ is the best way to say thanks! 🙏',
+    STAR: { label: '⭐ Drop GitHub Star', url: 'https://github.com/jzbakh/arn-skin' },
+    REVIEWS: {
+        MARKETPLACE: { label: '🚀 Rate on Marketplace', url: 'https://marketplace.visualstudio.com/items?itemName=jzbakh.antigravity-arn-skin&ssr=false#review-details' },
+        OPEN_VSX: { label: '🚀 Rate on Open VSX', url: 'https://open-vsx.org/extension/jzbakh/antigravity-arn-skin/reviews' },
+    },
+    LATER: 'Maybe later? 🥺',
+};
+
+function minorVersion(version) {
+    return version.split('.').slice(0, 2).join('.');
+}
+
+// Only a newer minor version asks again: going back to an older one stays silent.
+function shouldPromptSupport(state, version) {
+    const shown = state.get(SUPPORT_PROMPT.STATE_KEY);
+    return !shown || minorVersion(version).localeCompare(shown, undefined, { numeric: true }) > 0;
+}
+
+// Microsoft's VS Code installs extensions from its Marketplace; the other editors use Open VSX.
+function supportLinks(appName) {
+    const { MARKETPLACE, OPEN_VSX } = SUPPORT_PROMPT.REVIEWS;
+    return [SUPPORT_PROMPT.STAR, appName.startsWith('Visual Studio Code') ? MARKETPLACE : OPEN_VSX];
+}
+
+async function promptSupport(context) {
+    const state = context.globalState;
+    const version = context.extension.packageJSON.version;
+    // A theme switch restarts every window's wait: only the one in use asks.
+    if (!shouldPromptSupport(state, version) || !vscode.window.state.focused) return;
+    await state.update(SUPPORT_PROMPT.STATE_KEY, minorVersion(version));
+
+    const links = supportLinks(vscode.env.appName);
+    const choice = await vscode.window.showInformationMessage(SUPPORT_PROMPT.MESSAGE, ...links.map(link => link.label), SUPPORT_PROMPT.LATER);
+    const link = links.find(l => l.label === choice);
+    if (link) await vscode.env.openExternal(vscode.Uri.parse(link.url));
+}
+
+// The prompt comes once an ARN theme has stayed the color theme for DELAY_MS;
+// any theme change restarts the wait.
+function scheduleSupportPrompt(context) {
+    let timer;
+    const restart = () => {
+        clearTimeout(timer);
+        const theme = vscode.workspace.getConfiguration('workbench').get('colorTheme');
+        if (!theme || !theme.startsWith('Arn')) return;
+        timer = setTimeout(() => promptSupport(context).catch(err => console.error('[ARN]', err)), SUPPORT_PROMPT.DELAY_MS);
+    };
+    restart();
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('workbench.colorTheme')) restart();
+        }),
+        { dispose: () => clearTimeout(timer) },
+    );
+}
+
+// =========================================================================
 // ACTIVATE
 // =========================================================================
 
@@ -2905,6 +2970,10 @@ function activate(context) {
             }
         })
     );
+
+    context.globalState.setKeysForSync([SUPPORT_PROMPT.STATE_KEY]);
+    // Not under the test runner: the integration tests record every notification.
+    if (context.extensionMode !== vscode.ExtensionMode.Test) scheduleSupportPrompt(context);
 
     const applyByMode = async (mode, text, themeLabel) => {
         if (mode === 'quick') return applyQuick(context, text, themeLabel);
@@ -3368,4 +3437,8 @@ module.exports.__testing = {
     importThemes,
     pruneForBackup,
     prepareExport,
+    SUPPORT_PROMPT,
+    minorVersion,
+    shouldPromptSupport,
+    supportLinks,
 };
