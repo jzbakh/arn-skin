@@ -1644,7 +1644,9 @@ const THEMES_1_0_5 = {
             'list.inactiveSelectionIconForeground': '#605c56',
         },
         semantic: {},
-        rules: [],
+        rules: [
+            { name: 'Markdown · markup.quote', scope: 'markup.quote.markdown', settings: { foreground: '#9fa235', fontStyle: 'italic' } },
+        ],
     },
     Nebula: {
         colors: {
@@ -1652,7 +1654,9 @@ const THEMES_1_0_5 = {
             'list.inactiveSelectionIconForeground': '#7e789e',
         },
         semantic: {},
-        rules: [],
+        rules: [
+            { name: 'Markdown · markup.quote', scope: 'markup.quote.markdown', settings: { foreground: '#ec5bbf', fontStyle: 'italic' } },
+        ],
     },
     Neptune: {
         colors: {
@@ -1660,7 +1664,9 @@ const THEMES_1_0_5 = {
             'list.inactiveSelectionIconForeground': '#94A8CC',
         },
         semantic: {},
-        rules: [],
+        rules: [
+            { name: 'Markdown · markup.quote', scope: 'markup.quote.markdown', settings: { foreground: '#009b8e', fontStyle: 'italic' } },
+        ],
     },
     Uranus: {
         colors: {
@@ -1668,7 +1674,9 @@ const THEMES_1_0_5 = {
             'list.inactiveSelectionIconForeground': '#6a8a8a',
         },
         semantic: {},
-        rules: [],
+        rules: [
+            { name: 'Markdown · markup.quote', scope: 'markup.quote.markdown', settings: { foreground: '#78c5b6', fontStyle: 'italic' } },
+        ],
     },
     Io: {
         colors: {
@@ -1676,7 +1684,9 @@ const THEMES_1_0_5 = {
             'list.inactiveSelectionIconForeground': '#a0a880',
         },
         semantic: {},
-        rules: [],
+        rules: [
+            { name: 'Markdown · markup.quote', scope: 'markup.quote.markdown', settings: { foreground: '#2cbd47', fontStyle: 'italic' } },
+        ],
     },
     Jupiter: {
         colors: {
@@ -1684,7 +1694,9 @@ const THEMES_1_0_5 = {
             'list.inactiveSelectionIconForeground': '#5e4c30',
         },
         semantic: {},
-        rules: [],
+        rules: [
+            { name: 'Markdown · markup.quote', scope: 'markup.quote.markdown', settings: { foreground: '#006a33', fontStyle: 'italic' } },
+        ],
     },
     Mars: {
         colors: {
@@ -1692,7 +1704,9 @@ const THEMES_1_0_5 = {
             'list.inactiveSelectionIconForeground': '#fdbd31',
         },
         semantic: {},
-        rules: [],
+        rules: [
+            { name: 'Markdown · markup.quote', scope: 'markup.quote.markdown', settings: { foreground: '#f0989c', fontStyle: 'italic' } },
+        ],
     },
 };
 

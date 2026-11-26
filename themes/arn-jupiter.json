@@ -2440,7 +2440,10 @@
     },
     {
       "name": "Markdown · markup.quote",
-      "scope": "markup.quote.markdown",
+      "scope": [
+        "markup.quote.markdown",
+        "markup.quote.markdown meta.paragraph.markdown"
+      ],
       "settings": {
         "foreground": "#006a33",
         "fontStyle": "italic"
