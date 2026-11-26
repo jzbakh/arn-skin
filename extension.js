@@ -1723,6 +1723,8 @@ const THEMES_1_0_5 = {
             'list.inactiveSelectionIconForeground': '#a0a880',
             'input.placeholderForeground': '#5a6040',
             'breadcrumb.foreground': '#5a6040',
+            'peekViewResult.matchHighlightBackground': '#c0ff0045',
+            'peekViewResult.selectionBackground': '#c0ff0060',
         },
         semantic: {},
         rules: [
