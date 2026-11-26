@@ -532,6 +532,20 @@ describe('Quick and Advanced layers — user transitions', function () {
         assert.deepEqual(state, { ui: { 'minimap.background': '#FF00FF' } });
     });
 
+    it('reads a 1.0.5 Quick line left at that version\'s theme color as untouched', async () => {
+        await clearCustomizations();
+        const JUPITER = 'Arn · Jupiter — Amber Light';
+        const jupiter = __testing.parseJsonc(fs.readFileSync(path.join(REPO_ROOT, 'themes', 'arn-jupiter.json'), 'utf8'));
+        // 1.0.5 listed every base: Active-Border still holds Jupiter's focus color of that time.
+        const legacyDir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'arn-legacy-'));
+        fs.writeFileSync(path.join(legacyDir, 'quick-arn-jupiter-amber-light.css'),
+            `:root {\n    --Global-Background: #FFF6E5;\n    --Active-Border: ${__testing.THEMES_1_0_5.Jupiter.colors.focusBorder};\n}\n`);
+        await wb().update('colorCustomizations', { [`[${JUPITER}]`]: { 'editor.background': '#FFF6E5' } }, G);
+        const state = await __testing.loadThemeState({ extensionUri: vscode.Uri.file(REPO_ROOT), globalStorageUri: vscode.Uri.file(legacyDir) }, JUPITER, jupiter);
+        fs.rmSync(legacyDir, { recursive: true, force: true });
+        assert.deepEqual(state.quick, { 'ui.baseBackground': '#FFF6E5' });
+    });
+
     it('recomposes the colours from the saved state at startup', async () => {
         // What an earlier build derived from a pale pink text: red line numbers.
         const state = { quick: { 'ui.baseForeground': '#EAC6C6' } };
