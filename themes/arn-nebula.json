@@ -103,7 +103,7 @@
     "editorGroupHeader.tabsBackground": "#16101F",
     "editorGroupHeader.noTabsBackground": "#15121f",
     "editorGroupHeader.border": "#00000000",
-    "editorGroup.border": "#00000000",
+    "editorGroup.border": "#c216e939",
     "editorGroup.dropBackground": "#00e5ff15",
     "editorGroup.focusedEmptyBorder": "#00e5ff40",
     "tab.activeBackground": "#100D18",
@@ -131,7 +131,7 @@
     // ─────────────────────────────────────────────
     "sideBar.background": "#16101F",
     "sideBar.foreground": "#a5a0c5",
-    "sideBar.border": "#00000000",
+    "sideBar.border": "#c216e939",
     "sideBar.dropBackground": "#a365eb15",
     "sideBarTitle.foreground": "#7e789e",
     "sideBarSectionHeader.background": "#20172C",
@@ -195,7 +195,7 @@
     // PANEL (terminal, output, debug)
     // ─────────────────────────────────────────────
     "panel.background": "#191327",
-    "panel.border": "#00000000",
+    "panel.border": "#c216e939",
     "panel.dropBorder": "#ff2e88",
     "panelTitle.activeBorder": "#00e5ff",
     "panelTitle.activeForeground": "#d1ff51",
@@ -359,11 +359,11 @@
     // ─────────────────────────────────────────────
     "notifications.background": "#16101F",
     "notifications.foreground": "#e0def4",
-    "notifications.border": "#00000000",
-    "notificationCenter.border": "#00000000",
+    "notifications.border": "#3a2f52",
+    "notificationCenter.border": "#3a2f52",
     "notificationCenterHeader.background": "#221930",
     "notificationCenterHeader.foreground": "#7e789e",
-    "notificationToast.border": "#00000000",
+    "notificationToast.border": "#3a2f52",
     "notificationLink.foreground": "#00e5ff",
     "notificationsErrorIcon.foreground": "#ff3333",
     "notificationsWarningIcon.foreground": "#ffc300",
@@ -529,7 +529,7 @@
     // EDITOR SUGGEST WIDGET
     // ─────────────────────────────────────────────
     "editorSuggestWidget.background": "#181327",
-    "editorSuggestWidget.border": "#00000000",
+    "editorSuggestWidget.border": "#3a2f52",
     "editorSuggestWidget.foreground": "#e0def4",
     "editorSuggestWidget.selectedBackground": "#2c2248",
     "editorSuggestWidget.selectedForeground": "#ffffff",

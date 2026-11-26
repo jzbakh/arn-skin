@@ -1656,16 +1656,23 @@ const THEMES_1_0_5 = {
     Nebula: {
         colors: {
             'editorLineNumber.foreground': '#5b537a',
+            'editorGroup.border': '#00000000',
             'tab.unfocusedActiveBackground': '#14111F',
             'tab.unfocusedActiveBorderTop': '#ff2e8850',
+            'sideBar.border': '#00000000',
             'activityBar.inactiveForeground': '#5b537a',
             'activityBarTop.inactiveForeground': '#5b537a',
+            'panel.border': '#00000000',
             'terminal.ansiBlue': '#00e5ff',
             'terminal.ansiBrightBlue': '#66f0ff',
             'terminal.ansiCyan': '#5ee5bc',
             'terminal.ansiBrightCyan': '#a8f5d6',
             'list.activeSelectionIconForeground': '#00e5ff',
             'list.inactiveSelectionIconForeground': '#7e789e',
+            'notifications.border': '#00000000',
+            'notificationCenter.border': '#00000000',
+            'notificationToast.border': '#00000000',
+            'editorSuggestWidget.border': '#00000000',
         },
         semantic: {
             property: '#e0def4',
