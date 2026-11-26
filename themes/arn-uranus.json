@@ -396,8 +396,8 @@
     // ─────────────────────────────────────────────
     "peekView.border": "#3ed8c040",
     "peekViewEditor.background": "#121a24",
-    "peekViewEditor.matchHighlightBackground": "#3ed8c030",
-    "peekViewEditor.matchHighlightBorder": "#00000000",
+    "peekViewEditor.matchHighlightBackground": "#00000000",
+    "peekViewEditor.matchHighlightBorder": "#3ed8c0",
     "peekViewEditorGutter.background": "#121a24",
     "peekViewResult.background": "#060c12",
     "peekViewResult.fileForeground": "#ccd8d4",
