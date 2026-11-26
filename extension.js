@@ -1667,7 +1667,10 @@ const THEMES_1_0_5 = {
             'list.activeSelectionIconForeground': '#00e5ff',
             'list.inactiveSelectionIconForeground': '#7e789e',
         },
-        semantic: {},
+        semantic: {
+            property: '#e0def4',
+            'property.static': { foreground: '#e0def4', underline: true },
+        },
         rules: [
             { name: 'Markdown · markup.quote', scope: 'markup.quote.markdown', settings: { foreground: '#ec5bbf', fontStyle: 'italic' } },
         ],

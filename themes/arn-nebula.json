@@ -699,13 +699,13 @@
       "foreground": "#00e5ff",
       "italic": true
     },
-    "property": "#e0def4",
+    "property": "#77fc00",
     "property.readonly": {
       "foreground": "#b478f0",
       "italic": true
     },
     "property.static": {
-      "foreground": "#e0def4",
+      "foreground": "#77fc00",
       "underline": true
     },
     "variable": "#e0def4",
