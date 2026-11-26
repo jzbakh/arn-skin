@@ -1738,6 +1738,8 @@ const THEMES_1_0_5 = {
             'tab.activeBorderTop': '#e8a820',
             'activityBar.foreground': '#dfb911',
             'statusBarItem.remoteForeground': '#a87825',
+            'terminal.ansiBrightBlack': '#5e4c30',
+            'terminal.ansiBrightYellow': '#f4b830',
             'list.activeSelectionIconForeground': '#8a5810',
             'list.inactiveSelectionIconForeground': '#5e4c30',
             'list.hoverForeground': '#ad7721',
