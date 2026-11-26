@@ -1359,15 +1359,15 @@ async function saveThemeState(themeLabel, themeJson, state) {
 
 // Recomposes the outputs of every theme with a saved state: a newer version
 // may derive the same state differently, and its colours then show without
-// an edit. The themes earlier versions customised through Quick are rebuilt
-// into layers here too, rather than at the first open of the Skin menu: their
-// Quick file tells which colours were derived. Unchanged entries are not
-// rewritten. A customisation view left open is rewritten from the state, so
+// an edit. The themes earlier versions customised are rebuilt into layers
+// here too, rather than at the first open of the Skin menu, so the theme
+// colours changed since show at once; a Quick file tells which colours were
+// derived. Unchanged entries are not rewritten. A customisation view left open is rewritten from the state, so
 // saving it brings nothing older back.
 async function refreshOutputs(context) {
     const labels = new Set(Object.keys(globalEntries('arnSkin', 'customizations')).map(sel => sel.slice(1, -1)));
     for (const { label } of (await readPackageJson(context)).contributes.themes) {
-        if (await readTextIfExists(quickUriFor(context, label)) !== null) labels.add(label);
+        if (hasThemeCustomization(label) || await readTextIfExists(quickUriFor(context, label)) !== null) labels.add(label);
     }
     for (const label of labels) {
         const theme = await getThemeData(context, label);

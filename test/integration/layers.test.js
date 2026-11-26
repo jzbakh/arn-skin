@@ -565,6 +565,17 @@ describe('Quick and Advanced layers — user transitions', function () {
         assert.equal(colorsOf()['editorLineNumber.foreground'], '#EAC6C648');
     });
 
+    it('rebuilds at startup a theme an earlier version customised through Advanced only', async () => {
+        await clearCustomizations();
+        await wb().update('colorCustomizations', { [`[${MARS}]`]: { ...themeJson.colors, ...__testing.THEMES_1_0_5.Mars.colors, 'minimap.background': '#FF00FF' } }, G);
+        const emptyDir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'arn-empty-'));
+        await __testing.refreshOutputs({ extensionUri: vscode.Uri.file(REPO_ROOT), globalStorageUri: vscode.Uri.file(emptyDir) });
+        fs.rmSync(emptyDir, { recursive: true, force: true });
+
+        assert.deepEqual(__testing.readStoredState(MARS), { ui: { 'minimap.background': '#FF00FF' } });
+        assert.equal(colorsOf()['list.activeSelectionIconForeground'], undefined, 'the copy of the old theme is gone');
+    });
+
     it('lets the colours an earlier toggle wrote follow the toggle as it is now', async () => {
         const defaultView = (await openMode('quick')).document.getText();
         await closeAll();
