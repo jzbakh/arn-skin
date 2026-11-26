@@ -22,8 +22,8 @@
     "editor.findRangeHighlightBackground": "#5a403030",
     "editor.lineHighlightBackground": "#18100a",
     "editor.lineHighlightBorder": "#ff6a3d10",
-    "editor.hoverHighlightBackground": "#d80b0b70",
-    "editor.rangeHighlightBackground": "#1506e671",
+    "editor.hoverHighlightBackground": "#ff6a3d20",
+    "editor.rangeHighlightBackground": "#ff6a3d15",
     "editorLineNumber.foreground": "#7a6250",
     "editorLineNumber.activeForeground": "#ffa048",
     "editorRuler.foreground": "#42331f",
@@ -539,7 +539,7 @@
     // ─────────────────────────────────────────────
     // EDITOR HOVER WIDGET
     // ─────────────────────────────────────────────
-    "editorHoverWidget.background": "#290316",
+    "editorHoverWidget.background": "#140d08",
     "editorHoverWidget.border": "#ff6a3d3a",
     "editorHoverWidget.foreground": "#f0dfc8",
     "editorHoverWidget.statusBarBackground": "#22180f",
@@ -3483,7 +3483,7 @@
       "name": "TS · variable.parameter",
       "scope": "variable.parameter.ts",
       "settings": {
-        "foreground": "#bd451e",
+        "foreground": "#ffb090",
         "fontStyle": "italic"
       }
     },

@@ -1741,6 +1741,8 @@ const THEMES_1_0_5 = {
     },
     Mars: {
         colors: {
+            'editor.hoverHighlightBackground': '#d80b0b70',
+            'editor.rangeHighlightBackground': '#1506e671',
             'editorLineNumber.foreground': '#5a4638',
             'inlineChatInput.placeholderForeground': '#5a4638',
             'activityBar.inactiveForeground': '#5a4638',
@@ -1748,10 +1750,12 @@ const THEMES_1_0_5 = {
             'list.activeSelectionIconForeground': '#ff6a3d',
             'list.inactiveSelectionIconForeground': '#fdbd31',
             'input.placeholderForeground': '#5a4638',
+            'editorHoverWidget.background': '#290316',
         },
         semantic: {},
         rules: [
             { name: 'Markdown · markup.quote', scope: 'markup.quote.markdown', settings: { foreground: '#f0989c', fontStyle: 'italic' } },
+            { name: 'TS · variable.parameter', scope: 'variable.parameter.ts', settings: { foreground: '#bd451e', fontStyle: 'italic' } },
         ],
     },
 };
