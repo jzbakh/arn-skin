@@ -1736,6 +1736,10 @@ const THEMES_1_0_5 = {
             'list.activeSelectionIconForeground': '#8a5810',
             'list.inactiveSelectionIconForeground': '#5e4c30',
             'input.placeholderForeground': '#b8a682',
+            'settings.dropdownBackground': '#fdfbf5',
+            'settings.checkboxBackground': '#fdfbf5',
+            'settings.textInputBackground': '#fdfbf5',
+            'settings.numberInputBackground': '#fdfbf5',
         },
         semantic: {},
         rules: [
