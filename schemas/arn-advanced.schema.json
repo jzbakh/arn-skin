@@ -555,6 +555,11 @@
           "format": "color-hex",
           "description": "VSCode color token: editor.findMatchHighlightBackground"
         },
+        "editor.findMatchHighlightBorder": {
+          "type": "string",
+          "format": "color-hex",
+          "description": "VSCode color token: editor.findMatchHighlightBorder"
+        },
         "editor.findRangeHighlightBackground": {
           "type": "string",
           "format": "color-hex",

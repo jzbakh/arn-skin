@@ -19,6 +19,7 @@
     "editor.findMatchBackground": "#ff6a3d72",
     "editor.findMatchBorder": "#ffa048",
     "editor.findMatchHighlightBackground": "#ff6a3d2a",
+    "editor.findMatchHighlightBorder": "#00000000",
     "editor.findRangeHighlightBackground": "#5a403030",
     "editor.lineHighlightBackground": "#18100a",
     "editor.lineHighlightBorder": "#ff6a3d10",
