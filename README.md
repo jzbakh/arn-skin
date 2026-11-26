@@ -45,14 +45,14 @@
 
 <br>
 
-**7 premium space themes + customization** for Antigravity IDE, VSCode, Cursor, VSCodium, Windsurf...
+**7 premium space themes + customization** for Antigravity IDE, VS Code, Cursor, VSCodium, Windsurf...
 
-📦 **Zero dependencies**: 100% native JavaScript, readable and auditable.
+📦 **Zero dependencies**: vanilla JavaScript with no build step, readable and auditable.
 
 ---
 
 <div align="center">
-  <h4> <a href="https://arn_inside.gitlab.io/arn-skin/"> Visualize Markdown, Python, TypeScript, Rust, CSS, HTML, JSON, Shell, and SQL syntax </a></h4>
+  <h4> <a href="https://arn_inside.gitlab.io/arn-skin/"> Preview the syntax highlighting for Markdown, Python, TypeScript, Rust, CSS, HTML, JSON, Shell, and SQL </a></h4>
 </div><br>
 
 | Theme | Style | Description |
@@ -69,31 +69,35 @@
 
 ---
 
-### **Features:**
+### ✨ Features
 
-🚀 **Change Theme:** Instantly switch between the 7 themes via the extension menu by clicking on `Skin` in the status bar. 
+🚀 **Change Theme:** Instantly switch between the 7 themes from the extension menu: click `Skin` in the status bar.
 
-*Customize in real-time (400ms delay) via the IDE's native color picker:*
+*Customize in real time (400 ms delay) with the IDE's native color picker:*
 
-⚡ **Quick Customization:** Edit only **12 key colors and 5 smart toggles**, the extension automatically generates the ~250 derived UI colors!
+⚡ **Quick Customization:** Edit just **12 key colors and 5 smart toggles**, and the extension automatically generates the ~250 derived UI colors!
 
 <div align="center">
 
-Each toggle accepts `YES`, `NO`, or `INHERIT` *(keep the theme's default behaviour)*.
+Each toggle accepts `YES`, `NO`, or `INHERIT` *(keeps the theme's default behavior)*.
 
 | Toggle | YES | NO |
 | :--- | :--- | :--- |
-| **Cursor Line Glow** | Highlights current line and cursor with an accent glow | Removes the line highlight entirely |
-| **Pure Black Mode** | Enables maximum-contrast surfaces | Softens the background contrast to reduce eye strain |
-| **Vivid Selection** | Enables accent-colored background for selected text | Uses a neutral grey selection, tuned for readability |
-| **Borderless Mode** | Hides all UI borders | Applies a subtle, text-tinted border |
-| **Active Tab Highlight** | Highlights the active tab with an accent colour | Keeps all tabs uniform |
+| **Cursor Line Glow** | Highlights the current line and the cursor with an accent glow | Removes the line highlight entirely |
+| **Pure Black Mode** | Makes every background near-black (near-white on the light theme) | Keeps the theme's background shades |
+| **Vivid Selection** | Colors the selection and highlighted words with the accent color | Uses a soft neutral gray for the selection and highlighted words |
+| **Borderless Mode** | Hides all UI borders | Shows every border, in the Borders color or a subtle tint of the text |
+| **Active Tab Highlight** | Makes the active tab stand out: background, text, and top and bottom borders in the accent colors | Keeps the active tab plain, with no accent color or border |
 
 </div>
 
-🌈 **Advanced: UI Colors:** Granular control over every visual element (tabs, sidebar, activity bar, terminal...).
+💡 Easily undo a change: the light bulb restores the theme's value.
+
+🌈 **Advanced: UI Colors:** Granular control over every visual element (tabs, sidebar, activity bar, terminal...). Quick and Advanced combine color by color: the most recent change wins.
 
 ⌨️ **Advanced: Syntax Colors:** Adjust the syntax highlighting of your code by directly editing semantic tokens and TextMate rules.
+
+💾 **Export / Import:** Save all your ARN-Skin customizations to a portable file, then restore them on another machine or after a reinstall.
 
 ♻️ **Reset:** Revert all modifications to restore the original theme at any time.
 
@@ -101,18 +105,16 @@ Each toggle accepts `YES`, `NO`, or `INHERIT` *(keep the theme's default behavio
 
 ## 🚀 Installation
 
-🌍 **README in 6 languages**: no heavy translation framework bundled in the extension.
-
 <details>
-<summary><b>🔌 Via the IDE interface (Recommended)</b></summary>
+<summary><b>🔌 From your editor (recommended)</b></summary>
 
 <br>
 
-Works on Antigravity IDE, VSCode, Cursor, Windsurf, VSCodium, and other forks (that use the Microsoft Marketplace or Open VSX).
+Works in Antigravity IDE, VS Code, Cursor, Windsurf, VSCodium, and other VS Code forks that use the VS Marketplace or Open VSX.
 
 1. Open the **Extensions** view (`Ctrl+Shift+X`).
 2. Search for `ARN-Skin`.
-> 💡 **Tip:** Filter search results by **Name** (and NOT by popularity, relevance, or download count) to find it easily.
+> 💡 **Tip:** Sort the search results by **Name** (and NOT by popularity, relevance, or install count) to find the extension easily.
 3. Click **Install** and enable the extension.
 
 </details>
@@ -122,11 +124,11 @@ Works on Antigravity IDE, VSCode, Cursor, Windsurf, VSCodium, and other forks (t
 
 <br>
 
-1. Download the [`antigravity-arn-skin.vsix`](https://gitlab.com/arn_inside/arn-skin/releases/latest/download/antigravity-arn-skin.vsix) file.
-2. In Antigravity IDE, open the Extensions view (`Ctrl+Shift+X`).
+1. Download the [`arn-skin.vsix`](https://github.com/jzbakh/arn-skin/releases/latest/download/arn-skin.vsix) file.
+2. In your editor, open the **Extensions** view (`Ctrl+Shift+X`).
 3. Click the "..." menu (Views and More Actions) at the top of the sidebar.
 4. Select **Install from VSIX...**
-5. Choose the `antigravity-arn-skin.vsix` file and enable the extension.
+5. Choose the downloaded file and enable the extension.
 
 </details>
 
@@ -135,13 +137,13 @@ Works on Antigravity IDE, VSCode, Cursor, Windsurf, VSCodium, and other forks (t
 
 <br>
 
-100% native JavaScript extension — no build step. The code is readable and auditable.
+Vanilla JavaScript with no build step: the code is readable and auditable.
 
 1. Create a folder named `arn-skin`, then download and place the `schemas`, `themes`, and `media` folders inside it, along with the `extension.js`, `package.json`, and `README.md` files.
-2. Copy this folder into your IDE's extensions directory (example for Antigravity IDE):
-   - **Windows**: `%USERPROFILE%\.antigravity\extensions\`
-   - **macOS/Linux**: `~/.antigravity/extensions/`
-3. Restart the IDE and enable the extension.
+2. Copy this folder into your editor's extensions folder:
+   - **Antigravity IDE**: `%USERPROFILE%\.antigravity-ide\extensions\` (Windows) or `~/.antigravity-ide/extensions/` (macOS/Linux)
+   - **VS Code**: `%USERPROFILE%\.vscode\extensions\` (Windows) or `~/.vscode/extensions/` (macOS/Linux)
+3. Restart the editor and enable the extension.
 
 </details>
 
@@ -154,19 +156,25 @@ Works on Antigravity IDE, VSCode, Cursor, Windsurf, VSCodium, and other forks (t
 <div align="center">
 
 <p align="center">
-  <b>💫 Like this project? Leave a ⭐ on Gitlab to support it!</b>
+  <b>💫 Enjoying this project? Leave a ⭐ on GitHub or GitLab to support it!</b>
 </p>
 <p align="center">
-  <a href="https://gitlab.com/arn_inside/arn-skin">
-    <img src="https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=social" alt="Star on Gitlab">
+  <a href="https://github.com/jzbakh/arn-skin">
+    <img src="https://img.shields.io/github/stars/jzbakh/arn-skin?style=social" alt="Star on GitHub">
   </a>
+  <a href="https://gitlab.com/arn_inside/arn-skin">
+    <img src="https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=social" alt="Star on GitLab">
+  </a>
+</p>
+<p align="center">
+  A review on <a href="https://open-vsx.org/extension/jzbakh/antigravity-arn-skin/reviews">Open VSX</a> or the <a href="https://marketplace.visualstudio.com/items?itemName=jzbakh.antigravity-arn-skin&ssr=false#review-details">VS Marketplace</a> also helps others find it.
 </p>
 
 <br>
 
 <p align="center">
-  <a href="https://gitlab.com/arn_inside/arn-skin">
-    <img src="https://api.star-history.com/svg?repos=jzbakh/antigravity-arn-skin&type=Date"  width="600" alt="Star History Chart">
+  <a href="https://github.com/jzbakh/arn-skin">
+    <img src="https://api.star-history.com/svg?repos=jzbakh/arn-skin&type=Date"  width="600" alt="Star History Chart">
   </a>
 </p>
 
@@ -177,7 +185,7 @@ Works on Antigravity IDE, VSCode, Cursor, Windsurf, VSCodium, and other forks (t
 <a id="donate"></a>
 ### ☕ Financial support
 
-If you would like to financially contribute to the development and future updates, you can buy me a coffee or donate in cryptocurrencies. Thank you so much! 🫶
+If you'd like to support development and future updates financially, you can buy me a coffee or donate in cryptocurrency. Thank you so much! 🫶
 
 <div align="center">
 
@@ -224,7 +232,7 @@ If you would like to financially contribute to the development and future update
 
 <div align="center">
 <p align="center">
-  <b>Made with 🩵 by <a href="https://gitlab.com/arn_inside">jzbakh</a></b>
+  <b>Made with 🩵 by <a href="https://github.com/jzbakh">jzbakh</a></b>
 </p>
 
 ---
