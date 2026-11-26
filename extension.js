@@ -1742,6 +1742,7 @@ const THEMES_1_0_5 = {
             'terminal.ansiBrightBlack': '#5e4c30',
             'terminal.ansiBrightYellow': '#f4b830',
             'list.activeSelectionIconForeground': '#8a5810',
+            'list.inactiveSelectionForeground': '#927806',
             'list.inactiveSelectionIconForeground': '#5e4c30',
             'list.hoverForeground': '#ad7721',
             'input.placeholderForeground': '#b8a682',
