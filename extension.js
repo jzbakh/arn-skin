@@ -1656,6 +1656,8 @@ const THEMES_1_0_5 = {
     Nebula: {
         colors: {
             'editorLineNumber.foreground': '#5b537a',
+            'tab.unfocusedActiveBackground': '#14111F',
+            'tab.unfocusedActiveBorderTop': '#ff2e8850',
             'activityBar.inactiveForeground': '#5b537a',
             'activityBarTop.inactiveForeground': '#5b537a',
             'list.activeSelectionIconForeground': '#00e5ff',
