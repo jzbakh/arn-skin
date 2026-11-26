@@ -58,7 +58,7 @@
     "editorOverviewRuler.deletedForeground": "#d81c00",
     "editorOverviewRuler.errorForeground": "#d81c00",
     "editorOverviewRuler.warningForeground": "#e07008",
-    "editorOverviewRuler.infoForeground": "#d99815",
+    "editorOverviewRuler.infoForeground": "#0048d8",
 
     // ─────────────────────────────────────────────
     //   GHOST TEXT & INLAY HINTS (AI completions)
@@ -286,8 +286,8 @@
     "inputValidation.warningBorder": "#e07008",
     "inputValidation.warningForeground": "#e07008",
     "inputValidation.infoBackground": "#fdfbf5",
-    "inputValidation.infoBorder": "#d99815",
-    "inputValidation.infoForeground": "#8a5810",
+    "inputValidation.infoBorder": "#0048d8",
+    "inputValidation.infoForeground": "#0048d8",
 
     // ─────────────────────────────────────────────
     // BUTTONS
@@ -390,7 +390,7 @@
     "notificationLink.foreground": "#8a5810",
     "notificationsErrorIcon.foreground": "#d81c00",
     "notificationsWarningIcon.foreground": "#e07008",
-    "notificationsInfoIcon.foreground": "#d99815",
+    "notificationsInfoIcon.foreground": "#0048d8",
 
     // ─────────────────────────────────────────────
     // QUICK INPUT / COMMAND PALETTE
@@ -461,14 +461,14 @@
     "editorWarning.foreground": "#e07008",
     "editorWarning.background": "#e0700808",
     "editorWarning.border": "#00000000",
-    "editorInfo.foreground": "#d99815",
+    "editorInfo.foreground": "#0048d8",
     "editorInfo.background": "#d9981508",
     "editorInfo.border": "#00000000",
     "editorHint.foreground": "#108e10",
     "editorHint.border": "#00000000",
     "problemsErrorIcon.foreground": "#d81c00",
     "problemsWarningIcon.foreground": "#e07008",
-    "problemsInfoIcon.foreground": "#d99815",
+    "problemsInfoIcon.foreground": "#0048d8",
 
     // ─────────────────────────────────────────────
     // DEBUG
@@ -477,7 +477,7 @@
     "debugToolBar.border": "#ebe3cc",
     "debugExceptionWidget.background": "#f4ead1",
     "debugExceptionWidget.border": "#d81c00",
-    "debugConsole.infoForeground": "#d99815",
+    "debugConsole.infoForeground": "#0048d8",
     "debugConsole.warningForeground": "#e07008",
     "debugConsole.errorForeground": "#d81c00",
     "debugConsole.sourceForeground": "#5e4c30",
@@ -617,7 +617,7 @@
     "editorMarkerNavigation.background": "#f4ead1",
     "editorMarkerNavigationError.background": "#d81c00",
     "editorMarkerNavigationWarning.background": "#e07008",
-    "editorMarkerNavigationInfo.background": "#d99815",
+    "editorMarkerNavigationInfo.background": "#0048d8",
 
     // ─────────────────────────────────────────────
     // STICKY SCROLL
