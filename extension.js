@@ -508,7 +508,7 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     // ---- Input
     add('input.background', A(text, '10'), 'text', 'bg');
     add('input.foreground', text, 'text');
-    add('input.placeholderForeground', A(text, '60'), 'text', 'bg');
+    add('input.placeholderForeground', A(text, dim('8C', '98')), 'text', 'bg');
     // One raised surface for the three messages, as the themes do.
     add('inputValidation.errorBackground', M(bg, text, 0.05), 'bg', 'text');
     add('inputValidation.errorForeground', text, 'text');
@@ -618,7 +618,7 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     add('inlineChat.border', A(accent, '40'), 'accent');
     add('inlineChatInput.border', A(accent, '40'), 'accent');
     add('inlineChatInput.focusBorder', accent, 'accent');
-    add('inlineChatInput.placeholderForeground', A(text, '60'), 'text', 'bgSec');
+    add('inlineChatInput.placeholderForeground', A(text, dim('8C', '98')), 'text', 'bgSec');
     add('inlineChatInput.background', M(bgSec, text, 0.1), 'bgSec', 'text');
     add('inlineChatDiff.inserted', A(success, '18'), 'success');
     add('inlineChatDiff.removed', A(error, '18'), 'error');
@@ -1640,8 +1640,10 @@ function legacyPureBlackSurfaces(quick, themeJson) {
 const THEMES_1_0_5 = {
     Spaceport: {
         colors: {
+            'inlineChatInput.placeholderForeground': '#484e56',
             'list.activeSelectionIconForeground': '#e8d44c',
             'list.inactiveSelectionIconForeground': '#605c56',
+            'input.placeholderForeground': '#484e56',
         },
         semantic: {},
         rules: [
@@ -1670,8 +1672,10 @@ const THEMES_1_0_5 = {
     },
     Uranus: {
         colors: {
+            'inlineChatInput.placeholderForeground': '#3a5858',
             'list.activeSelectionIconForeground': '#3ed8c0',
             'list.inactiveSelectionIconForeground': '#6a8a8a',
+            'input.placeholderForeground': '#3a5858',
         },
         semantic: {},
         rules: [
@@ -1682,6 +1686,7 @@ const THEMES_1_0_5 = {
         colors: {
             'list.activeSelectionIconForeground': '#c0ff00',
             'list.inactiveSelectionIconForeground': '#a0a880',
+            'input.placeholderForeground': '#5a6040',
         },
         semantic: {},
         rules: [
@@ -1690,8 +1695,10 @@ const THEMES_1_0_5 = {
     },
     Jupiter: {
         colors: {
+            'inlineChatInput.placeholderForeground': '#b8a682',
             'list.activeSelectionIconForeground': '#8a5810',
             'list.inactiveSelectionIconForeground': '#5e4c30',
+            'input.placeholderForeground': '#b8a682',
         },
         semantic: {},
         rules: [
@@ -1700,8 +1707,10 @@ const THEMES_1_0_5 = {
     },
     Mars: {
         colors: {
+            'inlineChatInput.placeholderForeground': '#5a4638',
             'list.activeSelectionIconForeground': '#ff6a3d',
             'list.inactiveSelectionIconForeground': '#fdbd31',
+            'input.placeholderForeground': '#5a4638',
         },
         semantic: {},
         rules: [

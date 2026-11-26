@@ -55,6 +55,22 @@ describe('Quick derivations — a tinted text colour', () => {
     });
 });
 
+describe('Quick derivations — input placeholders', () => {
+    for (const th of themes) {
+        it(`keeps them at 4:1 or more on ${th.file}`, () => {
+            // The theme's own text, one step off so that it counts as edited.
+            const text = th.bases.text.slice(0, 6) + (th.bases.text[6].toLowerCase() === 'f' ? 'e' : 'f');
+            const colors = derive(th, { 'ui.baseForeground': text });
+            for (const [key, field, under] of [['input.placeholderForeground', 'input.background', th.bases.bg],
+                ['inlineChatInput.placeholderForeground', 'inlineChatInput.background', th.bases.bgSec]]) {
+                const surface = seen(colors[field], under);
+                const ratio = contrast(seen(colors[key], surface), surface);
+                assert.ok(ratio >= 4, `${key}: ${ratio.toFixed(2)}:1`);
+            }
+        });
+    }
+});
+
 describe('Quick derivations — a light background', () => {
     it('dims the labels of Jupiter about as much as Jupiter does', () => {
         // A text one step off the theme's own, so that every text key is derived.
