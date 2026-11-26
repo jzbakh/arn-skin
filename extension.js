@@ -1733,6 +1733,9 @@ const THEMES_1_0_5 = {
         colors: {
             'editorLineNumber.foreground': '#c4ad7a',
             'inlineChatInput.placeholderForeground': '#b8a682',
+            'tab.activeBorderTop': '#e8a820',
+            'activityBar.foreground': '#dfb911',
+            'statusBarItem.remoteForeground': '#a87825',
             'list.activeSelectionIconForeground': '#8a5810',
             'list.inactiveSelectionIconForeground': '#5e4c30',
             'input.placeholderForeground': '#b8a682',

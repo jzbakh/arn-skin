@@ -114,7 +114,7 @@
     "tab.activeBackground": "#fdfbf5",
     "tab.activeForeground": "#ec1f04",
     "tab.activeBorder": "#00000000",
-    "tab.activeBorderTop": "#e8a820",
+    "tab.activeBorderTop": "#8a5810",
     "tab.inactiveBackground": "#f3eee1",
     "tab.inactiveForeground": "#5e4c30",
     "tab.border": "#00000000",
@@ -148,7 +148,7 @@
     //   ACTIVITY BAR
     // ─────────────────────────────────────────────
     "activityBar.background": "#eeedea",
-    "activityBar.foreground": "#dfb911",
+    "activityBar.foreground": "#8a5810",
     "activityBar.inactiveForeground": "#8c7a58",
     "activityBar.border": "#e3d9b8",
     "activityBar.activeBorder": "#d81c00",
@@ -172,7 +172,7 @@
     "statusBar.noFolderBackground": "#efe4c4",
     "statusBar.noFolderForeground": "#1e1608",
     "statusBarItem.remoteBackground": "#e6b24a",
-    "statusBarItem.remoteForeground": "#a87825",
+    "statusBarItem.remoteForeground": "#1e1608",
     "statusBarItem.remoteHoverBackground": "#5a48208e",
     "statusBarItem.hoverBackground": "#d9981538",
     "statusBarItem.activeBackground": "#d9981552",
