@@ -57,7 +57,7 @@
     "editorOverviewRuler.deletedForeground": "#e8585080",
     "editorOverviewRuler.errorForeground": "#e8585080",
     "editorOverviewRuler.warningForeground": "#d0b86080",
-    "editorOverviewRuler.infoForeground": "#e8d44c80",
+    "editorOverviewRuler.infoForeground": "#88aacc80",
     // ─────────────────────────────────────────────
     //   GHOST TEXT & INLAY HINTS (AI completions)
     // ─────────────────────────────────────────────
@@ -273,8 +273,8 @@
     "inputValidation.warningBorder": "#d0b860",
     "inputValidation.warningForeground": "#d0b860",
     "inputValidation.infoBackground": "#1e2024",
-    "inputValidation.infoBorder": "#e8d44c",
-    "inputValidation.infoForeground": "#e8d44c",
+    "inputValidation.infoBorder": "#88aacc",
+    "inputValidation.infoForeground": "#88aacc",
     // ─────────────────────────────────────────────
     // BUTTONS
     // ─────────────────────────────────────────────
@@ -367,7 +367,7 @@
     "notificationLink.foreground": "#e8d44c",
     "notificationsErrorIcon.foreground": "#e85850",
     "notificationsWarningIcon.foreground": "#d0b860",
-    "notificationsInfoIcon.foreground": "#e8d44c",
+    "notificationsInfoIcon.foreground": "#88aacc",
     // ─────────────────────────────────────────────
     // QUICK INPUT / COMMAND PALETTE
     // ─────────────────────────────────────────────
@@ -433,14 +433,14 @@
     "editorWarning.foreground": "#d0b860",
     "editorWarning.background": "#d0b86008",
     "editorWarning.border": "#00000000",
-    "editorInfo.foreground": "#e8d44c",
+    "editorInfo.foreground": "#88aacc",
     "editorInfo.background": "#e8d44c08",
     "editorInfo.border": "#00000000",
     "editorHint.foreground": "#70d888",
     "editorHint.border": "#00000000",
     "problemsErrorIcon.foreground": "#e85850",
     "problemsWarningIcon.foreground": "#d0b860",
-    "problemsInfoIcon.foreground": "#e8d44c",
+    "problemsInfoIcon.foreground": "#88aacc",
     // ─────────────────────────────────────────────
     // DEBUG
     // ─────────────────────────────────────────────
@@ -448,7 +448,7 @@
     "debugToolBar.border": "#3e4248",
     "debugExceptionWidget.background": "#1e2024",
     "debugExceptionWidget.border": "#e85850",
-    "debugConsole.infoForeground": "#e8d44c",
+    "debugConsole.infoForeground": "#88aacc",
     "debugConsole.warningForeground": "#d0b860",
     "debugConsole.errorForeground": "#e85850",
     "debugConsole.sourceForeground": "#908880",

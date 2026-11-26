@@ -1641,6 +1641,7 @@ const THEMES_1_0_5 = {
     Spaceport: {
         colors: {
             'editorLineNumber.foreground': '#3e4248',
+            'editorOverviewRuler.infoForeground': '#e8d44c80',
             'inlineChatInput.placeholderForeground': '#484e56',
             'sideBarTitle.foreground': '#605c56',
             'sideBarSectionHeader.foreground': '#605c56',
@@ -1651,9 +1652,15 @@ const THEMES_1_0_5 = {
             'list.activeSelectionIconForeground': '#e8d44c',
             'list.inactiveSelectionIconForeground': '#605c56',
             'input.placeholderForeground': '#484e56',
+            'inputValidation.infoBorder': '#e8d44c',
+            'inputValidation.infoForeground': '#e8d44c',
+            'notificationsInfoIcon.foreground': '#e8d44c',
             'breadcrumb.foreground': '#484e56',
             'breadcrumb.focusForeground': '#908880',
             'peekViewTitleDescription.foreground': '#605c56',
+            'editorInfo.foreground': '#e8d44c',
+            'problemsInfoIcon.foreground': '#e8d44c',
+            'debugConsole.infoForeground': '#e8d44c',
             'icon.foreground': '#605c56',
         },
         semantic: {},
