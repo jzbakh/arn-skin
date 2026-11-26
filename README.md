@@ -842,14 +842,14 @@ Si deseas contribuir económicamente al desarrollo y a futuras actualizaciones, 
 
 <br>
 
-**7 سمات فضائية متميزة + إمكانية التخصيص** لبيئات التطوير Antigravity IDE، VSCode، Cursor، VSCodium، Windsurf...
+**7 سمات فضائية متميزة + إمكانية التخصيص** لبيئات التطوير Antigravity IDE، VS Code، Cursor، VSCodium، Windsurf...
 
-📦 **بدون تبعيات (Zero dependencies)** : 100% JavaScript أصلي، كود مقروء وقابل للتدقيق.
+📦 **صفر تبعيات:** JavaScript خالص (Vanilla) بدون خطوة بناء (build step)، قابل للقراءة والتدقيق.
 
 ---
 
 <div align="center">
-  <h4> <a href="https://arn_inside.gitlab.io/arn-skin/"> قم بمعاينة بناء الجملة (Syntax) لـ Markdown و Python و TypeScript و Rust و CSS و HTML و JSON و Shell و SQL </a></h4>
+  <h4> <a href="https://arn_inside.gitlab.io/arn-skin/"> عاين تمييز بناء الجملة (Syntax highlighting) في Markdown و Python و TypeScript و Rust و CSS و HTML و JSON و Shell و SQL </a></h4>
 </div><br>
 
 | السمة | النمط | الوصف |
@@ -866,9 +866,9 @@ Si deseas contribuir económicamente al desarrollo y a futuras actualizaciones, 
 
 ---
 
-### **الميزات :**
+### ✨ الميزات
 
-🚀 **Change Theme (تغيير السمة):** قم بالتبديل فورًا بين السمات السبع عبر قائمة الإضافة بالضغط على `Skin` في شريط الحالة. 
+🚀 **Change Theme (تغيير السمة):** بدّل فورًا بين السمات السبع من قائمة الإضافة: انقر على `Skin` في شريط الحالة.
 
 *التخصيص في الوقت الفعلي (بتأخير 400 مللي ثانية) عبر منتقي الألوان المدمج في بيئة التطوير (IDE):*
 
@@ -881,16 +881,20 @@ Si deseas contribuir económicamente al desarrollo y a futuras actualizaciones, 
 | المفتاح | YES | NO |
 | :--- | :--- | :--- |
 | **Cursor Line Glow** *(توهج سطر المؤشر)* | يُضيء السطر النشط والمؤشر بلون التمييز | يُزيل تمييز السطر بالكامل |
-| **Pure Black Mode** *(الوضع الأسود الداكن)* | تفعيل الأسطح عالية التباين | يُخفف تباين الخلفية لتقليل إجهاد العين |
-| **Vivid Selection** *(تحديد بارز)* | يستخدم لون التمييز كخلفية للنص المحدد | يستخدم تحديدًا رماديًا محايدًا، مُهيأ للقراءة |
-| **Borderless Mode** *(الوضع بلا حدود)* | يخفي جميع حدود واجهة المستخدم | يُطبّق حدودًا دقيقة بلون النص |
-| **Active Tab Highlight** *(تمييز التبويب النشط)* | يُميّز التبويب النشط بلون التمييز | يُحافظ على توحيد جميع التبويبات |
+| **Pure Black Mode** *(وضع الأسود الخالص)* | يجعل جميع الخلفيات شبه سوداء (شبه بيضاء في السمة الفاتحة) | يحافظ على درجات ألوان خلفية السمة |
+| **Vivid Selection** *(تحديد بارز)* | يلوّن التحديد والكلمات المظللة بلون التمييز | يستخدم رماديًا محايدًا وهادئًا للتحديد والكلمات المظللة |
+| **Borderless Mode** *(الوضع بلا حدود)* | يخفي جميع حدود واجهة المستخدم | يُظهر جميع الحدود، بلون Borders أو بدرجة خفيفة من لون النص |
+| **Active Tab Highlight** *(تمييز التبويب النشط)* | يُبرز التبويب النشط: الخلفية والنص والحدّان العلوي والسفلي بألوان التمييز | تبويب نشط بسيط، بلا لون تمييز ولا حدود |
 
 </div>
 
-🌈 **Advanced: UI Colors (ألوان واجهة المستخدم):** تحكم دقيق في كل عنصر مرئي (علامات التبويب، الشريط الجانبي، شريط النشاط، الطرفية...).
+💡 تراجع عن أي تعديل بسهولة: يستعيد المصباح قيمة السمة.
+
+🌈 **Advanced: UI Colors (ألوان واجهة المستخدم):** تحكم دقيق في كل عنصر مرئي (علامات التبويب، الشريط الجانبي، شريط النشاط، الطرفية...). يندمج Quick و Advanced لونًا بلون، والغلبة لآخر تعديل.
 
 ⌨️ **Advanced: Syntax Colors (ألوان بناء الجملة):** قم بضبط تمييز بناء الجملة (Syntax highlighting) لكودك عن طريق التعديل المباشر على الرموز الدلالية (semantic tokens) وقواعد TextMate.
+
+💾 **Export / Import (تصدير / استيراد):** احفظ جميع تخصيصات ARN-Skin في ملف قابل للنقل، ثم استعدها على جهاز آخر أو بعد إعادة التثبيت.
 
 ♻️ **Reset (إعادة تعيين):** تراجع عن جميع التعديلات لاستعادة السمة الأصلية في أي وقت.
 
@@ -898,47 +902,45 @@ Si deseas contribuir económicamente al desarrollo y a futuras actualizaciones, 
 
 ## 🚀 التثبيت
 
-🌍 **README بـ 6 لغات**: بدون دمج إطارات ترجمة ثقيلة داخل الإضافة.
-
-<details>
-<summary><b>🔌 عبر واجهة بيئة التطوير (موصى به)</b></summary>
+<details dir="rtl">
+<summary><b>🔌 عبر واجهة محررك (موصى به)</b></summary>
 
 <br>
 
-يعمل على Antigravity IDE و VSCode و Cursor و Windsurf و VSCodium وغيرها من النسخ المشتقة (التي تستخدم Microsoft Marketplace أو Open VSX).
+يعمل على Antigravity IDE و VS Code و Cursor و Windsurf و VSCodium وغيرها من النسخ المشتقة التي تستخدم VS Marketplace أو Open VSX.
 
-1. افتح عرض **الإضافات (Extensions)** (`Ctrl+Shift+X`).
+1. افتح عرض **الإضافات** (Extensions) بالضغط على `Ctrl+Shift+X`.
 2. ابحث عن `ARN-Skin`.
-> 💡 **تلميح:** قم بتصفية نتائج البحث حسب **الاسم** (وليس حسب الشعبية أو الصلة أو عدد التنزيلات) للعثور عليها بسهولة.
-3. انقر على **تثبيت (Install)** وقم بتفعيل الإضافة.
+> 💡 **نصيحة:** رتّب نتائج البحث حسب **الاسم** (Name)، وليس حسب الشعبية أو مدى الصلة أو عدد مرات التثبيت، للعثور على الإضافة بسهولة.
+3. انقر على **تثبيت** (Install) وقم بتفعيل الإضافة.
 
 </details>
 
-<details>
+<details dir="rtl">
 <summary><b>💻 التثبيت عبر VSIX</b></summary>
 
 <br>
 
-1. قم بتنزيل ملف [`antigravity-arn-skin.vsix`](https://gitlab.com/arn_inside/arn-skin/releases/latest/download/antigravity-arn-skin.vsix).
-2. في بيئة تطوير Antigravity IDE، افتح عرض الإضافات (`Ctrl+Shift+X`).
-3. انقر على قائمة "..." (طرق العرض والمزيد من الإجراءات) في أعلى الشريط الجانبي.
-4. حدد **Install from VSIX...**
-5. اختر ملف `antigravity-arn-skin.vsix` وقم بتفعيل الإضافة.
+1. قم بتنزيل ملف [`arn-skin.vsix`](https://github.com/jzbakh/arn-skin/releases/latest/download/arn-skin.vsix).
+2. في محررك، افتح عرض **الإضافات** (Extensions) بالضغط على `Ctrl+Shift+X`.
+3. انقر على قائمة «...» (Views and More Actions) أعلى الشريط الجانبي.
+4. حدد **Install from VSIX...** (تثبيت من VSIX).
+5. اختر الملف الذي تم تنزيله وقم بتفعيل الإضافة.
 
 </details>
 
-<details>
+<details dir="rtl">
 <summary><b>🔧 التثبيت اليدوي</b></summary>
 
 <br>
 
-إضافة مبنية بنسبة 100% بـ JavaScript أصلي — بدون خطوات بناء (build). الكود مقروء وقابل للتدقيق.
+JavaScript خالص (Vanilla) بدون خطوة بناء (build step): الكود قابل للقراءة والتدقيق.
 
 1. قم بإنشاء مجلد باسم `arn-skin`، ثم قم بتنزيل ووضع المجلدات `schemas` و `themes` و `media` بداخله، إلى جانب ملفات `extension.js` و `package.json` و `README.md`.
-2. انسخ هذا المجلد إلى مسار الإضافات الخاص ببيئة التطوير الخاصة بك (مثال لـ Antigravity IDE):
-   - **نظام Windows**: `%USERPROFILE%\.antigravity\extensions\`
-   - **نظام macOS/Linux**: `~/.antigravity/extensions/`
-3. أعد تشغيل بيئة التطوير (IDE) وقم بتفعيل الإضافة.
+2. انسخ هذا المجلد إلى مجلد إضافات محررك:
+   - في **Antigravity IDE:** `%USERPROFILE%\.antigravity-ide\extensions\` (Windows) أو `~/.antigravity-ide/extensions/` (macOS/Linux)
+   - في **VS Code:** `%USERPROFILE%\.vscode\extensions\` (Windows) أو `~/.vscode/extensions/` (macOS/Linux)
+3. أعد تشغيل المحرر وقم بتفعيل الإضافة.
 
 </details>
 
@@ -951,19 +953,25 @@ Si deseas contribuir económicamente al desarrollo y a futuras actualizaciones, 
 <div align="center">
 
 <p align="center">
-  <b>💫 هل أعجبك هذا المشروع؟ اترك ⭐ على Gitlab لدعمه!</b>
+  <b>💫 هل أعجبك هذا المشروع؟ اترك ⭐ على GitHub أو GitLab لدعمه!</b>
 </p>
 <p align="center">
-  <a href="https://gitlab.com/arn_inside/arn-skin">
-    <img src="https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=social" alt="نجمة على Gitlab">
+  <a href="https://github.com/jzbakh/arn-skin">
+    <img src="https://img.shields.io/github/stars/jzbakh/arn-skin?style=social" alt="نجمة على GitHub">
   </a>
+  <a href="https://gitlab.com/arn_inside/arn-skin">
+    <img src="https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=social" alt="نجمة على GitLab">
+  </a>
+</p>
+<p align="center">
+  تقييمك على <a href="https://open-vsx.org/extension/jzbakh/antigravity-arn-skin/reviews">Open VSX</a> أو <a href="https://marketplace.visualstudio.com/items?itemName=jzbakh.antigravity-arn-skin&ssr=false#review-details">VS Marketplace</a> يساعد الآخرين أيضًا على اكتشافه.
 </p>
 
 <br>
 
 <p align="center">
-  <a href="https://gitlab.com/arn_inside/arn-skin">
-    <img src="https://api.star-history.com/svg?repos=jzbakh/antigravity-arn-skin&type=Date"  width="600" alt="مخطط سجل النجوم">
+  <a href="https://github.com/jzbakh/arn-skin">
+    <img src="https://api.star-history.com/svg?repos=jzbakh/arn-skin&type=Date"  width="600" alt="مخطط تاريخ النجوم">
   </a>
 </p>
 
@@ -973,7 +981,7 @@ Si deseas contribuir económicamente al desarrollo y a futuras actualizaciones, 
 
 ### ☕ الدعم المالي
 
-إذا كنت ترغب في المساهمة ماليًا في التطوير والتحديثات المستقبلية، يمكنك أن تشتري لي قهوة أو التبرع بالعملات الرقمية المشفرة. شكرًا جزيلاً لك! 🫶
+إذا كنت ترغب في المساهمة ماليًا في التطوير والتحديثات المستقبلية، يمكنك أن تشتري لي قهوة أو تتبرع بالعملات المشفرة. شكرًا جزيلاً لك! 🫶
 
 <div align="center">
 
@@ -981,38 +989,38 @@ Si deseas contribuir económicamente al desarrollo y a futuras actualizaciones, 
 
 </div>
 
-**التبرعات بالعملات الرقمية المشفرة:**
+**التبرعات بالعملات المشفرة:**
 
-<details>
-<summary><b>₿ Bitcoin (بيتكوين, BTC)</b></summary>
+<details dir="rtl">
+<summary><b>₿ بيتكوين (BTC)</b></summary>
 
 <br>
 
 `bc1q4zu08uxpfra9aecp28x6zelg23qdcdeg680hlg`
 
-![Bitcoin (BTC)](./media/Bitcoin.png)
+![بيتكوين (BTC)](./media/Bitcoin.png)
 
 </details>
 
-<details>
-<summary><b>Ethereum (إيثيريوم, ETH) & ERC-20 Tokens (رموز ERC-20)</b></summary>
+<details dir="rtl">
+<summary><b>إيثريوم (ETH) ورموز ERC-20</b></summary>
 
 <br>
 
 `0xdc593BfaD6Be146400B713c2787DCCb9392AC206`
 
-![Ethereum (ETH) & ERC-20](./media/Ethereum.png)
+![إيثريوم (ETH) ورموز ERC-20](./media/Ethereum.png)
 
 </details>
 
-<details>
-<summary><b>Solana (سولانا, SOL)</b></summary>
+<details dir="rtl">
+<summary><b>سولانا (SOL)</b></summary>
 
 <br>
 
 `FwBu1oqSCdfDvvFhy3crYBkgzjDuwDcU5gxXzVCqxTn9`
 
-![Solana (SOL)](./media/Solana.png)
+![سولانا (SOL)](./media/Solana.png)
 
 </details>
 
@@ -1020,7 +1028,7 @@ Si deseas contribuir económicamente al desarrollo y a futuras actualizaciones, 
 
 <div align="center">
 <p align="center">
-  <b>صُنع بـ 🩵 بواسطة <a href="https://gitlab.com/arn_inside">jzbakh</a></b>
+  <b>صُنع بـ 🩵 بواسطة <a href="https://github.com/jzbakh">jzbakh</a></b>
 </p>
 
 ---
