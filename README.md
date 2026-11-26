@@ -237,14 +237,14 @@ If you would like to financially contribute to the development and future update
 
 <br>
 
-**7 thèmes spatiaux premium + personnalisation** pour Antigravity IDE, VSCode, Cursor, VSCodium, Windsurf...
+**7 thèmes spatiaux premium + personnalisation** pour Antigravity IDE, VS Code, Cursor, VSCodium, Windsurf...
 
-📦 **Zéro dépendance** : 100 % JavaScript natif, lisible et auditable.
+📦 **Zéro dépendance** : JavaScript vanilla sans étape de build, lisible et auditable.
 
 ---
 
 <div align="center">
-  <h4> <a href="https://arn_inside.gitlab.io/arn-skin/"> Visualisez les syntaxes Markdown, Python, Typescript, Rust, CSS, HTML, JSON, Shell et SQL </a></h4>
+  <h4> <a href="https://arn_inside.gitlab.io/arn-skin/"> Visualisez les syntaxes Markdown, Python, TypeScript, Rust, CSS, HTML, JSON, Shell et SQL </a></h4>
 </div><br>
 
 | Thème | Style | Description |
@@ -261,7 +261,7 @@ If you would like to financially contribute to the development and future update
 
 ---
 
-### **Fonctionnalités :**
+### ✨ Fonctionnalités
 
 🚀 **Change Theme (Changer de thème) :** Basculez instantanément entre les 7 thèmes via le menu de l'extension en cliquant sur `Skin` dans la barre d'état. 
 
@@ -276,16 +276,20 @@ Chaque réglage accepte `YES`, `NO` ou `INHERIT` *(conserve le comportement par 
 | Réglage | YES | NO |
 | :--- | :--- | :--- |
 | **Cursor Line Glow** *(Surbrillance de ligne)* | Illumine la ligne active et le curseur avec la couleur d'accentuation | Désactive l'effet de surbrillance sur la ligne |
-| **Pure Black Mode** *(Noir profond)* | Active les surfaces à contraste maximal | Adoucit le contraste du fond pour réduire la fatigue oculaire |
-| **Vivid Selection** *(Sélection vive)* | Utilise la couleur d'accentuation pour le fond de sélection | Utilise une sélection grise neutre, optimisée pour la lisibilité |
-| **Borderless Mode** *(Sans bordure)* | Masque toutes les bordures de l'interface | Applique une bordure discrète de la couleur du texte |
-| **Active Tab Highlight** *(Mise en évidence de l'onglet)* | Accentue visuellement l'onglet actif avec la couleur d'accentuation | Maintient un aspect uniforme pour tous les onglets |
+| **Pure Black Mode** *(Noir profond)* | Rend tous les fonds presque noirs (presque blancs sur le thème clair) | Garde les nuances de fond du thème |
+| **Vivid Selection** *(Sélection vive)* | Colore la sélection et les mots surlignés avec la couleur d'accentuation | Utilise un gris neutre et doux pour la sélection et les mots surlignés |
+| **Borderless Mode** *(Sans bordure)* | Masque toutes les bordures de l'interface | Affiche toutes les bordures, dans la couleur Borders ou une teinte discrète du texte |
+| **Active Tab Highlight** *(Mise en évidence de l'onglet actif)* | Met en avant l'onglet actif : fond, texte et bordures haute et basse aux couleurs d'accentuation | Onglet actif sobre, sans couleur d'accentuation ni bordure |
 
 </div>
 
-🌈 **Advanced: UI Colors (Couleurs de l'interface) :** Contrôle granulaire de chaque élément visuel (onglets, barre latérale, barre d'activité, terminal…).
+💡 Annulez facilement une modification : l'ampoule rétablit la valeur du thème.
+
+🌈 **Advanced: UI Colors (Couleurs de l'interface) :** Contrôle granulaire de chaque élément visuel (onglets, barre latérale, barre d'activité, terminal…). Quick et Advanced se combinent couleur par couleur : la dernière modification l'emporte.
 
 ⌨️ **Advanced: Syntax Colors (Couleurs de syntaxe) :** Ajustez la coloration syntaxique de votre code en éditant directement les tokens sémantiques et les règles TextMate.
+
+💾 **Export / Import (Exporter / Importer) :** Sauvegardez toutes vos personnalisations ARN-Skin dans un fichier portable, puis restaurez-les sur une autre machine ou après une réinstallation.
 
 ♻️ **Reset (Réinitialisation) :** Annulez toutes les modifications pour restaurer le thème d'origine à tout moment.
 
@@ -293,18 +297,16 @@ Chaque réglage accepte `YES`, `NO` ou `INHERIT` *(conserve le comportement par 
 
 ## 🚀 Installation
 
-🌍 **README en 6 langues** : sans framework de traduction lourd embarqué dans l'extension.
-
 <details>
-<summary><b>🔌 Via l'interface de l'IDE (Recommandé)</b></summary>
+<summary><b>🔌 Via l'interface de votre éditeur (recommandé)</b></summary>
 
 <br>
 
-Fonctionne sur Antigravity IDE, VSCode, Cursor, Windsurf, VSCodium et autres forks (qui utilisent le Microsoft Marketplace ou Open VSX).
+Fonctionne sur Antigravity IDE, VS Code, Cursor, Windsurf, VSCodium et les autres forks qui utilisent le VS Marketplace ou Open VSX.
 
 1. Ouvrez la vue **Extensions** (`Ctrl+Shift+X`).
 2. Recherchez `ARN-Skin`.
-> 💡 **Astuce :** Filtrez les résultats de recherche par **Nom** (et PAS par popularité, pertinence ou nombre de téléchargements) pour la trouver facilement.
+> 💡 **Astuce :** Triez les résultats de recherche par **Nom** (et PAS par popularité, pertinence ou nombre d'installations) pour trouver l'extension facilement.
 3. Cliquez sur **Installer** et activez l'extension.
 
 </details>
@@ -314,11 +316,11 @@ Fonctionne sur Antigravity IDE, VSCode, Cursor, Windsurf, VSCodium et autres for
 
 <br>
 
-1. Téléchargez le fichier [`antigravity-arn-skin.vsix`](https://gitlab.com/arn_inside/arn-skin/releases/latest/download/antigravity-arn-skin.vsix).
-2. Dans Antigravity IDE, ouvrez la vue des Extensions (`Ctrl+Shift+X`).
-3. Cliquez sur le menu "..." (Vues et plus d'actions) en haut de la barre latérale.
-4. Sélectionnez **Installer à partir d'un VSIX...**
-5. Choisissez le fichier `antigravity-arn-skin.vsix` et activez l'extension.
+1. Téléchargez le fichier [`arn-skin.vsix`](https://github.com/jzbakh/arn-skin/releases/latest/download/arn-skin.vsix).
+2. Dans votre éditeur, ouvrez la vue **Extensions** (`Ctrl+Shift+X`).
+3. Cliquez sur le menu « ... » (Vues et autres actions) en haut de la barre latérale.
+4. Sélectionnez **Installer à partir de VSIX...**
+5. Choisissez le fichier téléchargé et activez l'extension.
 
 </details>
 
@@ -327,13 +329,13 @@ Fonctionne sur Antigravity IDE, VSCode, Cursor, Windsurf, VSCodium et autres for
 
 <br>
 
-Extension 100 % JavaScript natif — aucune étape de build. Le code est lisible et auditable.
+JavaScript vanilla sans étape de build : le code est lisible et auditable.
 
 1. Créez un dossier nommé `arn-skin`, puis téléchargez et placez-y les dossiers `schemas`, `themes` et `media`, ainsi que les fichiers `extension.js`, `package.json` et `README.md`.
-2. Copiez ce dossier dans le répertoire des extensions de votre IDE (exemple pour Antigravity IDE) :
-   - **Windows** : `%USERPROFILE%\.antigravity\extensions\`
-   - **macOS/Linux** : `~/.antigravity/extensions/`
-3. Redémarrez l'IDE et activez l'extension.
+2. Copiez ce dossier dans le répertoire des extensions de votre éditeur :
+   - **Antigravity IDE** : `%USERPROFILE%\.antigravity-ide\extensions\` (Windows) ou `~/.antigravity-ide/extensions/` (macOS/Linux)
+   - **VS Code** : `%USERPROFILE%\.vscode\extensions\` (Windows) ou `~/.vscode/extensions/` (macOS/Linux)
+3. Relancez l'éditeur et activez l'extension.
 
 </details>
 
@@ -346,19 +348,25 @@ Extension 100 % JavaScript natif — aucune étape de build. Le code est lisible
 <div align="center">
 
 <p align="center">
-  <b>💫 Vous aimez ce projet ? Laissez une ⭐ sur Gitlab pour le soutenir !</b>
+  <b>💫 Ce projet vous plaît ? Laissez une ⭐ sur GitHub ou GitLab pour le soutenir !</b>
 </p>
 <p align="center">
-  <a href="https://gitlab.com/arn_inside/arn-skin">
-    <img src="https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=social" alt="Star sur Gitlab">
+  <a href="https://github.com/jzbakh/arn-skin">
+    <img src="https://img.shields.io/github/stars/jzbakh/arn-skin?style=social" alt="Star sur GitHub">
   </a>
+  <a href="https://gitlab.com/arn_inside/arn-skin">
+    <img src="https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=social" alt="Star sur GitLab">
+  </a>
+</p>
+<p align="center">
+  Un avis sur <a href="https://open-vsx.org/extension/jzbakh/antigravity-arn-skin/reviews">Open VSX</a> ou le <a href="https://marketplace.visualstudio.com/items?itemName=jzbakh.antigravity-arn-skin&ssr=false#review-details">VS Marketplace</a> aide aussi d'autres personnes à le découvrir.
 </p>
 
 <br>
 
 <p align="center">
-  <a href="https://gitlab.com/arn_inside/arn-skin">
-    <img src="https://api.star-history.com/svg?repos=jzbakh/antigravity-arn-skin&type=Date"  width="600" alt="Star History Chart">
+  <a href="https://github.com/jzbakh/arn-skin">
+    <img src="https://api.star-history.com/svg?repos=jzbakh/arn-skin&type=Date"  width="600" alt="Graphique de l'historique des étoiles">
   </a>
 </p>
 
@@ -390,13 +398,13 @@ Si vous souhaitez contribuer financièrement au développement et aux futures mi
 </details>
 
 <details>
-<summary><b>Ethereum (ETH) & ERC-20 Tokens</b></summary>
+<summary><b>Ethereum (ETH) et tokens ERC-20</b></summary>
 
 <br>
 
 `0xdc593BfaD6Be146400B713c2787DCCb9392AC206`
 
-![Ethereum (ETH) & ERC-20](./media/Ethereum.png)
+![Ethereum (ETH) et tokens ERC-20](./media/Ethereum.png)
 
 </details>
 
@@ -415,7 +423,7 @@ Si vous souhaitez contribuer financièrement au développement et aux futures mi
 
 <div align="center">
 <p align="center">
-  <b>Créé avec 🩵 par <a href="https://gitlab.com/arn_inside">jzbakh</a></b>
+  <b>Créé avec 🩵 par <a href="https://github.com/jzbakh">jzbakh</a></b>
 </p>
 
 ---
