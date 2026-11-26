@@ -1747,6 +1747,7 @@ const THEMES_1_0_5 = {
             'inlineChatInput.placeholderForeground': '#5a4638',
             'activityBar.inactiveForeground': '#5a4638',
             'activityBarTop.inactiveForeground': '#5a4638',
+            'panelTitle.activeForeground': '#c2651a',
             'list.activeSelectionIconForeground': '#ff6a3d',
             'list.inactiveSelectionIconForeground': '#fdbd31',
             'input.placeholderForeground': '#5a4638',
