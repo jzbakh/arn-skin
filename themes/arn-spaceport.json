@@ -133,9 +133,9 @@
     "sideBar.foreground": "#9da79c",
     "sideBar.border": "#00000000",
     "sideBar.dropBackground": "#e8d44c15",
-    "sideBarTitle.foreground": "#605c56",
+    "sideBarTitle.foreground": "#868480",
     "sideBarSectionHeader.background": "#181a1e",
-    "sideBarSectionHeader.foreground": "#605c56",
+    "sideBarSectionHeader.foreground": "#868480",
     "sideBarSectionHeader.border": "#00000000",
     // ─────────────────────────────────────────────
     //   ACTIVITY BAR
@@ -156,7 +156,7 @@
     // STATUS BAR
     // ─────────────────────────────────────────────
     "statusBar.background": "#0c0e10",
-    "statusBar.foreground": "#605c56",
+    "statusBar.foreground": "#868480",
     "statusBar.border": "#00000000",
     "statusBar.debuggingBackground": "#e8d44c",
     "statusBar.debuggingForeground": "#121416",
@@ -199,7 +199,7 @@
     "panel.dropBorder": "#e8d44c",
     "panelTitle.activeBorder": "#e8d44c",
     "panelTitle.activeForeground": "#8eaf15",
-    "panelTitle.inactiveForeground": "#605c56",
+    "panelTitle.inactiveForeground": "#868480",
     "panelInput.border": "#00000000",
     "panelSection.border": "#00000000",
     "panelSection.dropBackground": "#e8d44c15",
@@ -386,8 +386,8 @@
     // ─────────────────────────────────────────────
     // BREADCRUMBS
     // ─────────────────────────────────────────────
-    "breadcrumb.foreground": "#484e56",
-    "breadcrumb.focusForeground": "#908880",
+    "breadcrumb.foreground": "#868480",
+    "breadcrumb.focusForeground": "#c0b8a8",
     "breadcrumb.activeSelectionForeground": "#d8dce0",
     "breadcrumb.background": "#121416",
     "breadcrumbPicker.background": "#1e2024",
@@ -406,7 +406,7 @@
     "peekViewResult.selectionBackground": "#e8d44c40",
     "peekViewResult.selectionForeground": "#ffffff",
     "peekViewTitle.background": "#1e2024",
-    "peekViewTitleDescription.foreground": "#605c56",
+    "peekViewTitleDescription.foreground": "#868480",
     "peekViewTitleLabel.foreground": "#d8dce0",
     // ─────────────────────────────────────────────
     // MINIMAP
@@ -605,7 +605,7 @@
     "widget.border": "#00000000",
     "selection.background": "#3a4a5880",
     "descriptionForeground": "#908880",
-    "icon.foreground": "#605c56",
+    "icon.foreground": "#868480",
     "errorForeground": "#e85850",
     "sash.hoverBorder": "#e8d44c",
     "contrastBorder": "#00000000",
