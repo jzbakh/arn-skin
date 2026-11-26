@@ -237,10 +237,8 @@
     // ─────────────────────────────────────────────
     "list.activeSelectionBackground": "#172B5E",
     "list.activeSelectionForeground": "#02fff2",
-    "list.activeSelectionIconForeground": "#3FE5FF",
     "list.inactiveSelectionBackground": "#15264ecc",
     "list.inactiveSelectionForeground": "#00c3ff",
-    "list.inactiveSelectionIconForeground": "#94A8CC",
     "list.hoverBackground": "#4FB4FF1E",
     "list.hoverForeground": "#48b0f5",
     "list.focusBackground": "#1E44A0",

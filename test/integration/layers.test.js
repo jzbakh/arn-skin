@@ -523,6 +523,15 @@ describe('Quick and Advanced layers — user transitions', function () {
             'the semantic edit moves to where VS Code reads it');
     });
 
+    it('lets the theme colors changed since 1.0.5 replace the copy 1.0.5 made', async () => {
+        await clearCustomizations();
+        await wb().update('colorCustomizations', { [`[${MARS}]`]: { ...themeJson.colors, ...__testing.THEMES_1_0_5.Mars.colors, 'minimap.background': '#FF00FF' } }, G);
+        const emptyDir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'arn-empty-'));
+        const state = await __testing.loadThemeState({ extensionUri: vscode.Uri.file(REPO_ROOT), globalStorageUri: vscode.Uri.file(emptyDir) }, MARS, themeJson);
+        fs.rmSync(emptyDir, { recursive: true, force: true });
+        assert.deepEqual(state, { ui: { 'minimap.background': '#FF00FF' } });
+    });
+
     it('recomposes the colours from the saved state at startup', async () => {
         // What an earlier build derived from a pale pink text: red line numbers.
         const state = { quick: { 'ui.baseForeground': '#EAC6C6' } };

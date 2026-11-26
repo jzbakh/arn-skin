@@ -349,6 +349,12 @@ describe('Colours 1.0.5 derived from the Quick bases', () => {
         assert.equal(legacy['editor.foreground'], undefined, 'a key whose derivation did not change');
     });
 
+    it('gives back the selected-row icon color, which Quick no longer derives', () => {
+        const quick = { 'ui.accentPrimary': '#D34CE8' };
+        assert.equal(t.legacyBaseColors(quick, th.json)['list.activeSelectionIconForeground'], '#D34CE8');
+        assert.equal(derive(th, quick)['list.activeSelectionIconForeground'], undefined);
+    });
+
     it('gives nothing back for untouched bases', () => {
         assert.deepEqual(t.legacyBaseColors({}, th.json), {});
     });

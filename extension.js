@@ -528,7 +528,6 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     // ---- List & tree
     add('list.activeSelectionBackground', A(accent, '33'), 'accent');
     add('list.activeSelectionForeground', text, 'text');
-    add('list.activeSelectionIconForeground', accent, 'accent');
     add('list.inactiveSelectionBackground', A(accent, '20'), 'accent');
     add('list.inactiveSelectionForeground', text, 'text');
     add('list.hoverBackground', A(text, '1A'), 'text');
@@ -1550,6 +1549,7 @@ const LEGACY_BASE_KEYS = (() => {
         ['inputValidation.infoBackground', 'accent', (b) => A(b.accent, '20')],
         ['inputOption.activeBackground', 'accent', (b) => A(b.accent, '33')],
         ['list.focusOutline', 'accent', (b) => b.accent],
+        ['list.activeSelectionIconForeground', 'accent', (b) => b.accent],
         ['list.filterMatchBackground', 'accent', (b) => A(b.accent, '40')],
         ['list.dropBackground', 'accent', (b) => A(b.accent, '30')],
         ['notificationCenterHeader.background', 'bgSec', (b) => L(b.bgSec, 0.05)],
@@ -1633,11 +1633,75 @@ function legacyPureBlackSurfaces(quick, themeJson) {
     return out;
 }
 
+// The theme values 1.0.5 shipped for what has changed since. Its Advanced
+// files copied the whole theme into the outputs and its Quick file listed every
+// base: such a value is the theme's, not the user's, and the theme's current
+// one takes over. Frozen on purpose: it must not follow later changes.
+const THEMES_1_0_5 = {
+    Spaceport: {
+        colors: {
+            'list.activeSelectionIconForeground': '#e8d44c',
+            'list.inactiveSelectionIconForeground': '#605c56',
+        },
+        semantic: {},
+        rules: [],
+    },
+    Nebula: {
+        colors: {
+            'list.activeSelectionIconForeground': '#00e5ff',
+            'list.inactiveSelectionIconForeground': '#7e789e',
+        },
+        semantic: {},
+        rules: [],
+    },
+    Neptune: {
+        colors: {
+            'list.activeSelectionIconForeground': '#3FE5FF',
+            'list.inactiveSelectionIconForeground': '#94A8CC',
+        },
+        semantic: {},
+        rules: [],
+    },
+    Uranus: {
+        colors: {
+            'list.activeSelectionIconForeground': '#3ed8c0',
+            'list.inactiveSelectionIconForeground': '#6a8a8a',
+        },
+        semantic: {},
+        rules: [],
+    },
+    Io: {
+        colors: {
+            'list.activeSelectionIconForeground': '#c0ff00',
+            'list.inactiveSelectionIconForeground': '#a0a880',
+        },
+        semantic: {},
+        rules: [],
+    },
+    Jupiter: {
+        colors: {
+            'list.activeSelectionIconForeground': '#8a5810',
+            'list.inactiveSelectionIconForeground': '#5e4c30',
+        },
+        semantic: {},
+        rules: [],
+    },
+    Mars: {
+        colors: {
+            'list.activeSelectionIconForeground': '#ff6a3d',
+            'list.inactiveSelectionIconForeground': '#fdbd31',
+        },
+        semantic: {},
+        rules: [],
+    },
+};
+
 // Earlier versions kept no state: the outputs were the only record, Advanced
 // wrote the whole theme into them, and the Quick file alone held the toggles.
 // The layers are rebuilt from both so the colours on screen do not change,
-// except those an older version derived: they follow the derivation as it is
-// now. Null when earlier versions left nothing for this theme.
+// except those an older version derived, which follow the derivation as it is
+// now, and the theme's own changed since 1.0.5, which follow the theme. Null
+// when earlier versions left nothing for this theme.
 async function legacyState(context, themeLabel, themeJson) {
     const sel = themeSelector(themeLabel);
     const cc = globalEntries('workbench', 'colorCustomizations')[sel];
@@ -1645,19 +1709,22 @@ async function legacyState(context, themeLabel, themeJson) {
     const sc = globalEntries('editor', 'semanticTokenColorCustomizations')[sel];
     if (!cc && !tc && !sc) return null;
 
+    const then = THEMES_1_0_5[planetOf(themeLabel)];
     let quick = {};
     const quickText = await readTextIfExists(quickUriFor(context, themeLabel));
     if (quickText !== null) {
-        quick = compactQuick(resolveQuickInput(quickText, quickDefaults(themeJson)).quick, themeJson);
+        const listed = resolveQuickInput(quickText, quickDefaults(themeJson)).quick;
+        quick = compactQuick(compactQuick(listed, { ...themeJson, colors: { ...themeJson.colors, ...then.colors } }), themeJson);
     }
     const derived = deriveQuickColors(expandQuick(quick, themeJson), themeJson);
     return compactState({
         quick,
-        ui: dropThemeValues([legacyToggleColors(quick, themeJson), legacyBaseColors(quick, themeJson), legacyPureBlackSurfaces(quick, themeJson)]
+        ui: dropThemeValues([then.colors, legacyToggleColors(quick, themeJson), legacyBaseColors(quick, themeJson), legacyPureBlackSurfaces(quick, themeJson)]
             .reduce(diffColors, diffColors(cc, { ...(themeJson.colors || {}), ...derived })),
         newlyDerivedKeys(quick, themeJson, derived), themeJson),
-        semantic: diffSemantic({ ...(tc && tc.semanticTokenColors), ...(sc && sc.rules) }, themeJson.semanticTokenColors),
-        textMate: diffTextMate(tc && tc.textMateRules, themeJson.tokenColors),
+        semantic: diffSemantic(diffSemantic({ ...(tc && tc.semanticTokenColors), ...(sc && sc.rules) }, themeJson.semanticTokenColors),
+            then.semantic),
+        textMate: diffTextMate(tc && tc.textMateRules, [...themeJson.tokenColors, ...then.rules]),
     });
 }
 
@@ -3422,6 +3489,7 @@ module.exports.__testing = {
     legacyBaseColors,
     legacyPureBlackSurfaces,
     newlyDerivedKeys,
+    THEMES_1_0_5,
     legacyState,
     loadThemeState,
     saveThemeState,
