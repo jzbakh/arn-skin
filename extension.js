@@ -1684,9 +1684,11 @@ const THEMES_1_0_5 = {
     },
     Neptune: {
         colors: {
+            'editor.inactiveSelectionBackground': '#2C42A530',
             'editorLineNumber.foreground': '#384C6A',
             'activityBar.inactiveForeground': '#384C6A',
             'activityBarTop.inactiveForeground': '#384C6A',
+            'terminal.inactiveSelectionBackground': '#2C42A530',
             'list.activeSelectionIconForeground': '#3FE5FF',
             'list.inactiveSelectionIconForeground': '#94A8CC',
         },
