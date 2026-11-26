@@ -32,7 +32,7 @@ the maintainer needs (theme label, editor, OS, repro steps, screenshot).
 Before submitting, please:
 
 1. Make sure you are running the latest published version.
-2. Search the [existing issues](https://gitlab.com/arn_inside/arn-skin/-/issues)
+2. Search the [existing issues](https://github.com/jzbakh/arn-skin/issues)
    to confirm the bug has not already been reported.
 3. Reproduce the problem with all other extensions disabled, so we can rule
    out interference.
@@ -70,8 +70,8 @@ discussion much easier.
 ## Development setup
 
 ```bash
-git clone https://gitlab.com/arn_inside/arn-skin.git
-cd antigravity-arn-skin
+git clone https://github.com/jzbakh/arn-skin.git
+cd arn-skin
 cd test && npm ci
 ```
 
@@ -91,32 +91,52 @@ The suite is split into two layers:
 
 ```bash
 cd test
-npm run test:unit         # 328 unit tests (pure helpers, no editor needed)
-npm run test:integration  # 116 integration tests (boots a VSCode instance)
+npm run test:unit         # unit tests (pure helpers, no editor needed)
+npm run test:integration  # integration tests (boots a VSCode instance)
 npm test                  # runs both
 ```
 
 ## Continuous integration
 
-Every pull request is automatically validated by a four-stage GitHub
-Actions pipeline ([`.github/workflows/tests.yml`](.github/workflows/tests.yml)):
+The project runs CI on both forges.
 
-1. **Validate** — fast structural checks: every JSON file parses, the
-   manifest declares its required fields, and the schema is well-formed.
-   Fails the pipeline early on obvious problems.
-2. **Unit** — the 328 pure-helper Mocha tests, on Linux, macOS and Windows
+### GitHub Actions
+
+Every push to `main` and every pull request runs the four-stage pipeline
+[`.github/workflows/tests.yml`](.github/workflows/tests.yml):
+
+1. **Validate** — fast structural checks: the manifest declares its
+   required fields and every theme JSONC file parses. Fails the pipeline
+   early on obvious problems.
+2. **Unit** — the pure-helper Mocha tests, on Linux, macOS and Windows
    in parallel.
-3. **Integration · stable** — the 116 vscode-test integration tests, on
-   the same three OSes, against the latest VSCode stable.
+3. **Integration · stable** — the vscode-test integration tests, on the
+   same three OSes, against the latest VSCode stable.
 4. **CI passed** — an aggregate gate that succeeds only when stages 1–3
    all succeed; this is the single status check that branch protection
    should require.
 
-A separate weekly cron job (Mondays 08:00 UTC) re-runs the integration
-suite against VSCode Insiders to catch regressions in upcoming editor
-releases before they ship.
+The same pipeline runs every Monday at 08:17 UTC. On the 1st of each
+month at 08:00 UTC, it also runs the integration suite against VSCode
+Insiders, to catch regressions in upcoming editor releases before they
+ship.
 
-Pull requests are reviewed by the maintainer ([@jzbakh](https://gitlab.com/arn_inside))
+On a `vX.Y.Z` tag, [`.github/workflows/release.yml`](.github/workflows/release.yml)
+creates the GitHub release from the VSIX published on Open VSX.
+
+### GitLab CI
+
+Every push runs the validation, the lint and the security scans. A push
+that changes the code, the themes or the tests also runs the unit and
+integration tests on Linux. A weekly run adds the Windows integration
+tests and the macOS unit tests, and a monthly run runs the integration
+suite against VSCode Insiders.
+
+On a `vX.Y.Z` tag, the release pipeline runs all the tests, packages one
+VSIX, publishes it to the Visual Studio Marketplace and Open VSX, and
+creates the GitLab release.
+
+Pull requests are reviewed by the maintainer ([@jzbakh](https://github.com/jzbakh))
 once CI is green; the [CODEOWNERS](.github/CODEOWNERS) file requests that
 review automatically.
 
