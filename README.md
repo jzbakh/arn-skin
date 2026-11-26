@@ -1041,14 +1041,14 @@ JavaScript خالص (Vanilla) بدون خطوة بناء (build step): الكو�
 
 <br>
 
-**7 ธีมอวกาศระดับพรีเมียม + ปรับแต่งได้อย่างอิสระ** สำหรับ Antigravity IDE, VSCode, Cursor, VSCodium, Windsurf...
+**7 ธีมอวกาศระดับพรีเมียม + ปรับแต่งได้อย่างอิสระ** สำหรับ Antigravity IDE, VS Code, Cursor, VSCodium, Windsurf...
 
-📦 **ไม่มี Dependency (Zero dependencies)** : เขียนด้วย JavaScript แบบเนทีฟ 100% โค้ดอ่านง่ายและสามารถตรวจสอบได้
+📦 **ไม่มี Dependency:** ใช้ Vanilla JavaScript ล้วน ไม่มีขั้นตอนการบิลด์ (build step) โค้ดอ่านง่ายและตรวจสอบได้
 
 ---
 
 <div align="center">
-  <h4> <a href="https://arn_inside.gitlab.io/arn-skin/"> แสดงตัวอย่าง Syntax ของ Markdown, Python, TypeScript, Rust, CSS, HTML, JSON, Shell และ SQL </a></h4>
+  <h4> <a href="https://arn_inside.gitlab.io/arn-skin/"> ดูตัวอย่างการเน้นสีไวยากรณ์ (Syntax highlighting) ของ Markdown, Python, TypeScript, Rust, CSS, HTML, JSON, Shell และ SQL </a></h4>
 </div><br>
 
 | ธีม | สไตล์ | คำอธิบาย |
@@ -1065,13 +1065,13 @@ JavaScript خالص (Vanilla) بدون خطوة بناء (build step): الكو�
 
 ---
 
-### **คุณสมบัติ :**
+### ✨ คุณสมบัติ
 
 🚀 **Change Theme (เปลี่ยนธีม):** สลับใช้งานระหว่าง 7 ธีมได้ทันทีผ่านเมนูของส่วนขยาย เพียงคลิกที่ `Skin` บนแถบสถานะ (status bar)
 
-*ปรับแต่งแบบเรียลไทม์ (ความหน่วง 400 มิลลิวินาที) ผ่านเครื่องมือเลือกสีเริ่มต้นของ IDE:*
+*ปรับแต่งแบบเรียลไทม์ (ความหน่วง 400 มิลลิวินาที) ผ่านเครื่องมือเลือกสีแบบเนทีฟของ IDE:*
 
-⚡ **Quick Customization (ปรับแต่งอย่างรวดเร็ว):** แก้ไขเพียง **12 สีหลัก และสวิตช์อัจฉริยะ 5 ตัว** ส่วนขยายจะสร้างสีอินเทอร์เฟซ (UI) ที่เกี่ยวข้องกว่า 250 สีให้โดยอัตโนมัติ!
+⚡ **Quick Customization (ปรับแต่งอย่างรวดเร็ว):** แก้ไขเพียง **12 สีหลัก และสวิตช์อัจฉริยะ 5 ตัว** ส่วนขยายจะสร้างสีอินเทอร์เฟซ (UI) ที่เกี่ยวข้องประมาณ 250 สีให้โดยอัตโนมัติ!
 
 <div align="center">
 
@@ -1080,16 +1080,20 @@ JavaScript خالص (Vanilla) بدون خطوة بناء (build step): الكو�
 | สวิตช์ | YES | NO |
 | :--- | :--- | :--- |
 | **Cursor Line Glow** *(เคอร์เซอร์เรืองแสง)* | ไฮไลต์บรรทัดปัจจุบันและเคอร์เซอร์ด้วยสีแอ็กเซนต์ | นำการไฮไลต์บรรทัดออกทั้งหมด |
-| **Pure Black Mode** *(โหมดดำสนิท)* | เปิดใช้งานหน้าตาแบบคอนทราสต์สูงสุด | ลดคอนทราสต์ของพื้นหลังเพื่อลดความล้าของดวงตา |
-| **Vivid Selection** *(การเลือกที่สดใส)* | ใช้สีแอ็กเซนต์เป็นพื้นหลังสำหรับข้อความที่เลือก | ใช้สีเทากลางสำหรับการเลือกข้อความ เน้นให้อ่านง่าย |
-| **Borderless Mode** *(โหมดไร้ขอบ)* | ซ่อนขอบ UI ทั้งหมด | เพิ่มขอบบางๆ โทนเดียวกับสีตัวอักษร |
-| **Active Tab Highlight** *(เน้นแท็บที่ใช้งาน)* | ไฮไลต์แท็บที่ใช้งานด้วยสีแอ็กเซนต์ | ให้ทุกแท็บดูกลมกลืนกัน |
+| **Pure Black Mode** *(โหมดดำสนิท)* | ทำให้พื้นหลังทั้งหมดเกือบดำสนิท (เกือบขาวในธีมสว่าง) | คงเฉดสีพื้นหลังของธีมไว้ |
+| **Vivid Selection** *(การเลือกที่สดใส)* | ใช้สีแอ็กเซนต์กับส่วนที่เลือกและคำที่ไฮไลต์ | ใช้สีเทากลางแบบนุ่มนวลกับส่วนที่เลือกและคำที่ไฮไลต์ |
+| **Borderless Mode** *(โหมดไร้ขอบ)* | ซ่อนขอบ UI ทั้งหมด | แสดงขอบทั้งหมด ด้วยสี Borders หรือโทนสีอ่อนๆ ของตัวอักษร |
+| **Active Tab Highlight** *(เน้นแท็บที่ใช้งาน)* | เน้นแท็บที่ใช้งาน: พื้นหลัง ตัวอักษร และขอบบนกับขอบล่างเป็นสีแอ็กเซนต์ | แท็บที่ใช้งานดูเรียบๆ ไม่มีสีแอ็กเซนต์และไม่มีขอบ |
 
 </div>
 
-🌈 **Advanced: UI Colors (สีอินเทอร์เฟซ):** ควบคุมทุกองค์ประกอบของภาพได้อย่างละเอียด (แท็บ แถบด้านข้าง แถบกิจกรรม เทอร์มินัล...)
+💡 ย้อนการแก้ไขได้ง่ายๆ: คลิกที่ไอคอนหลอดไฟเพื่อคืนค่าเดิมของธีม
 
-⌨️ **Advanced: Syntax Colors (สีของไวยากรณ์):** ปรับแต่งการเน้นสีไวยากรณ์ (Syntax highlighting) ของโค้ดโดยการแก้ไขโทเค็นความหมายและกฎ TextMate ได้โดยตรง
+🌈 **Advanced: UI Colors (สีอินเทอร์เฟซ):** ควบคุมทุกองค์ประกอบบนหน้าจอได้อย่างละเอียด (แท็บ แถบด้านข้าง แถบกิจกรรม เทอร์มินัล...) Quick และ Advanced จะรวมกันทีละสี: การแก้ไขล่าสุดจะมีผล
+
+⌨️ **Advanced: Syntax Colors (สีของไวยากรณ์):** ปรับแต่งการเน้นสีไวยากรณ์ (Syntax highlighting) ของโค้ดโดยการแก้ไข semantic tokens และกฎ TextMate ได้โดยตรง
+
+💾 **Export / Import (ส่งออก / นำเข้า):** บันทึกการปรับแต่ง ARN-Skin ทั้งหมดของคุณลงในไฟล์ เพื่อนำกลับมาใช้บนเครื่องอื่นหรือหลังติดตั้งใหม่
 
 ♻️ **Reset (รีเซ็ต):** ย้อนกลับการแก้ไขทั้งหมดเพื่อคืนค่าเป็นธีมดั้งเดิมได้ทุกเมื่อ
 
@@ -1097,18 +1101,16 @@ JavaScript خالص (Vanilla) بدون خطوة بناء (build step): الكو�
 
 ## 🚀 การติดตั้ง
 
-🌍 **README มี 6 ภาษา**: ไม่มีเฟรมเวิร์กการแปลภาษาที่หนักเครื่องฝังมากับส่วนขยาย
-
 <details>
-<summary><b>🔌 ผ่านหน้าต่างอินเทอร์เฟซของ IDE (แนะนำ)</b></summary>
+<summary><b>🔌 ผ่านอินเทอร์เฟซของโปรแกรมแก้ไข (แนะนำ)</b></summary>
 
 <br>
 
-รองรับการทำงานบน Antigravity IDE, VSCode, Cursor, Windsurf, VSCodium และเวอร์ชันแยกอื่นๆ (ที่ใช้งาน Microsoft Marketplace หรือ Open VSX)
+รองรับการทำงานบน Antigravity IDE, VS Code, Cursor, Windsurf, VSCodium และเวอร์ชันแยกอื่นๆ ที่ใช้ VS Marketplace หรือ Open VSX
 
-1. เปิดหน้ามุมมอง **ส่วนขยาย (Extensions)** (`Ctrl+Shift+X`)
+1. เปิดมุมมอง **ส่วนขยาย (Extensions)** โดยกด `Ctrl+Shift+X`
 2. ค้นหา `ARN-Skin`
-> 💡 **เคล็ดลับ:** กรองผลการค้นหาด้วย **ชื่อ** (ไม่ใช่ตามความนิยม ความเกี่ยวข้อง หรือจำนวนการดาวน์โหลด) เพื่อให้ค้นพบได้ง่าย
+> 💡 **เคล็ดลับ:** จัดเรียงผลการค้นหาตาม **ชื่อ (Name)** (ไม่ใช่ตามความนิยม ความเกี่ยวข้อง หรือจำนวนการติดตั้ง) เพื่อหาส่วนขยายได้ง่ายขึ้น
 3. คลิก **ติดตั้ง (Install)** และเปิดใช้งานส่วนขยาย
 
 </details>
@@ -1118,26 +1120,26 @@ JavaScript خالص (Vanilla) بدون خطوة بناء (build step): الكو�
 
 <br>
 
-1. ดาวน์โหลดไฟล์ [`antigravity-arn-skin.vsix`](https://gitlab.com/arn_inside/arn-skin/releases/latest/download/antigravity-arn-skin.vsix)
-2. ใน Antigravity IDE ให้เปิดหน้ามุมมองส่วนขยาย (`Ctrl+Shift+X`)
-3. คลิกที่เมนู "..." (Views and More Actions) ที่ด้านบนของแถบด้านข้าง
-4. เลือก **Install from VSIX...**
-5. เลือกไฟล์ `antigravity-arn-skin.vsix` และเปิดใช้งานส่วนขยาย
+1. ดาวน์โหลดไฟล์ [`arn-skin.vsix`](https://github.com/jzbakh/arn-skin/releases/latest/download/arn-skin.vsix)
+2. ในโปรแกรมแก้ไขของคุณ ให้เปิดมุมมอง **ส่วนขยาย (Extensions)** โดยกด `Ctrl+Shift+X`
+3. คลิกที่เมนู "..." (Views and More Actions) ที่ด้านบนสุดของแถบด้านข้าง
+4. เลือก **ติดตั้งจาก VSIX... (Install from VSIX...)**
+5. เลือกไฟล์ที่ดาวน์โหลดมาและเปิดใช้งานส่วนขยาย
 
 </details>
 
 <details>
-<summary><b>🔧 การติดตั้งแบบกำหนดเอง</b></summary>
+<summary><b>🔧 การติดตั้งด้วยตนเอง</b></summary>
 
 <br>
 
-ส่วนขยายเป็น JavaScript แบบเนทีฟ 100% — ไม่มีขั้นตอนการบิลด์ โค้ดอ่านง่ายและสามารถตรวจสอบได้
+ใช้ Vanilla JavaScript ล้วน ไม่มีขั้นตอนการบิลด์ (build step): โค้ดอ่านง่ายและตรวจสอบได้
 
 1. สร้างโฟลเดอร์ชื่อ `arn-skin` จากนั้นดาวน์โหลดและวางโฟลเดอร์ `schemas`, `themes` และ `media` ไว้ด้านใน พร้อมกับไฟล์ `extension.js`, `package.json` และ `README.md`
-2. คัดลอกโฟลเดอร์นี้ไปยังไดเรกทอรีส่วนขยายของ IDE ของคุณ (ตัวอย่างสำหรับ Antigravity IDE):
-   - **ระบบ Windows**: `%USERPROFILE%\.antigravity\extensions\`
-   - **ระบบ macOS/Linux**: `~/.antigravity/extensions/`
-3. รีสตาร์ท IDE และเปิดใช้งานส่วนขยาย
+2. คัดลอกโฟลเดอร์นี้ไปยังไดเรกทอรีส่วนขยายของโปรแกรมแก้ไข:
+   - **Antigravity IDE:** `%USERPROFILE%\.antigravity-ide\extensions\` (Windows) หรือ `~/.antigravity-ide/extensions/` (macOS/Linux)
+   - **VS Code:** `%USERPROFILE%\.vscode\extensions\` (Windows) หรือ `~/.vscode/extensions/` (macOS/Linux)
+3. รีสตาร์ตโปรแกรมแก้ไขและเปิดใช้งานส่วนขยาย
 
 </details>
 
@@ -1150,19 +1152,25 @@ JavaScript خالص (Vanilla) بدون خطوة بناء (build step): الكو�
 <div align="center">
 
 <p align="center">
-  <b>💫 ชอบโปรเจกต์นี้ไหม? ให้ ⭐ บน Gitlab เพื่อสนับสนุนโปรเจกต์นี้สิ!</b>
+  <b>💫 ชอบโปรเจกต์นี้ไหม? กด ⭐ บน GitHub หรือ GitLab เพื่อสนับสนุนกันได้เลย!</b>
 </p>
 <p align="center">
-  <a href="https://gitlab.com/arn_inside/arn-skin">
-    <img src="https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=social" alt="กดดาวบน Gitlab">
+  <a href="https://github.com/jzbakh/arn-skin">
+    <img src="https://img.shields.io/github/stars/jzbakh/arn-skin?style=social" alt="ให้ดาวบน GitHub">
   </a>
+  <a href="https://gitlab.com/arn_inside/arn-skin">
+    <img src="https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=social" alt="ให้ดาวบน GitLab">
+  </a>
+</p>
+<p align="center">
+  การรีวิวบน <a href="https://open-vsx.org/extension/jzbakh/antigravity-arn-skin/reviews">Open VSX</a> หรือ <a href="https://marketplace.visualstudio.com/items?itemName=jzbakh.antigravity-arn-skin&ssr=false#review-details">VS Marketplace</a> ก็ช่วยให้ผู้อื่นค้นพบโปรเจกต์นี้ได้เช่นกัน
 </p>
 
 <br>
 
 <p align="center">
-  <a href="https://gitlab.com/arn_inside/arn-skin">
-    <img src="https://api.star-history.com/svg?repos=jzbakh/antigravity-arn-skin&type=Date"  width="600" alt="แผนภูมิประวัติการกดดาว">
+  <a href="https://github.com/jzbakh/arn-skin">
+    <img src="https://api.star-history.com/svg?repos=jzbakh/arn-skin&type=Date"  width="600" alt="กราฟประวัติดาว">
   </a>
 </p>
 
@@ -1172,7 +1180,7 @@ JavaScript خالص (Vanilla) بدون خطوة بناء (build step): الكو�
 
 ### ☕ การสนับสนุนทางการเงิน
 
-หากคุณต้องการมีส่วนร่วมสนับสนุนทุนสำหรับการพัฒนาและอัปเดตฟีเจอร์ในอนาคต คุณสามารถเลี้ยงกาแฟฉัน หรือบริจาคผ่านสกุลเงินดิจิทัลได้ ขอขอบคุณเป็นอย่างยิ่ง! 🫶
+หากคุณต้องการสนับสนุนทางการเงินสำหรับการพัฒนาและการอัปเดตในอนาคต ก็สามารถเลี้ยงกาแฟสักแก้วหรือบริจาคเป็นสกุลเงินดิจิทัลได้ ขอบคุณมาก! 🫶
 
 <div align="center">
 
@@ -1180,38 +1188,38 @@ JavaScript خالص (Vanilla) بدون خطوة بناء (build step): الكو�
 
 </div>
 
-**การบริจาคด้วยสกุลเงินคริปโต:**
+**การบริจาคสกุลเงินดิจิทัล:**
 
 <details>
-<summary><b>₿ Bitcoin (บิตคอยน์, BTC)</b></summary>
+<summary><b>₿ บิตคอยน์ (BTC)</b></summary>
 
 <br>
 
 `bc1q4zu08uxpfra9aecp28x6zelg23qdcdeg680hlg`
 
-![Bitcoin (BTC)](./media/Bitcoin.png)
+![บิตคอยน์ (BTC)](./media/Bitcoin.png)
 
 </details>
 
 <details>
-<summary><b>Ethereum (อีเธอเรียม, ETH) & ERC-20 Tokens (โทเคน ERC-20)</b></summary>
+<summary><b>อีเธอเรียม (ETH) และโทเคน ERC-20</b></summary>
 
 <br>
 
 `0xdc593BfaD6Be146400B713c2787DCCb9392AC206`
 
-![Ethereum (ETH) & ERC-20](./media/Ethereum.png)
+![อีเธอเรียม (ETH) และโทเคน ERC-20](./media/Ethereum.png)
 
 </details>
 
 <details>
-<summary><b>Solana (โซลานา, SOL)</b></summary>
+<summary><b>โซลานา (SOL)</b></summary>
 
 <br>
 
 `FwBu1oqSCdfDvvFhy3crYBkgzjDuwDcU5gxXzVCqxTn9`
 
-![Solana (SOL)](./media/Solana.png)
+![โซลานา (SOL)](./media/Solana.png)
 
 </details>
 
@@ -1219,7 +1227,7 @@ JavaScript خالص (Vanilla) بدون خطوة بناء (build step): الكو�
 
 <div align="center">
 <p align="center">
-  <b>สร้างสรรค์ด้วย 🩵 โดย <a href="https://gitlab.com/arn_inside">jzbakh</a></b>
+  <b>สร้างด้วย 🩵 โดย <a href="https://github.com/jzbakh">jzbakh</a></b>
 </p>
 
 ---
