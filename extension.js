@@ -1708,6 +1708,9 @@ const THEMES_1_0_5 = {
             'list.activeSelectionIconForeground': '#3ed8c0',
             'list.inactiveSelectionIconForeground': '#6a8a8a',
             'input.placeholderForeground': '#3a5858',
+            'editorMarkerNavigationError.background': '#ff7a8c15',
+            'editorMarkerNavigationWarning.background': '#f0c07815',
+            'editorMarkerNavigationInfo.background': '#3ed8c015',
         },
         semantic: {},
         rules: [
