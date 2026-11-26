@@ -147,7 +147,7 @@
     "activityBar.activeBorder": "#ff6a3d",
     "activityBar.activeBackground": "#ff6a3d18",
     "activityBar.dropBorder": "#ff6a3d",
-    "activityBarBadge.background": "#130b03",
+    "activityBarBadge.background": "#42331f",
     "activityBarBadge.foreground": "#fc9f43",
     "activityBarTop.foreground": "#ff6a3d",
     "activityBarTop.activeBorder": "#00000000",
@@ -296,7 +296,7 @@
     // ─────────────────────────────────────────────
     // BADGES
     // ─────────────────────────────────────────────
-    "badge.background": "#1f1305",
+    "badge.background": "#42331f",
     "badge.foreground": "#ffbe0a",
     // ─────────────────────────────────────────────
     // SCROLLBAR
