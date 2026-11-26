@@ -444,22 +444,22 @@ Si vous souhaitez contribuer financièrement au développement et aux futures mi
 
 <br>
 
-**7 款高级太空主题 + 自定义功能**，适用于 Antigravity IDE, VSCode, Cursor, VSCodium, Windsurf...
+**7 款高级太空主题 + 自定义功能**，适用于 Antigravity IDE、VS Code、Cursor、VSCodium、Windsurf 等编辑器。
 
-📦 **零依赖 (Zero dependencies)** : 100% 原生 JavaScript，代码可读且可审计。
+📦 **零依赖**：纯原生 JavaScript，无需构建步骤，代码清晰易读且易于审计。
 
 ---
 
 <div align="center">
-  <h4> <a href="https://arn_inside.gitlab.io/arn-skin/"> 预览 Markdown, Python, TypeScript, Rust, CSS, HTML, JSON, Shell 和 SQL 语法</a></h4>
+  <h4> <a href="https://arn_inside.gitlab.io/arn-skin/"> 预览 Markdown、Python、TypeScript、Rust、CSS、HTML、JSON、Shell 和 SQL 的语法高亮</a></h4>
 </div><br>
 
 | 主题 | 风格 | 描述 |
 |:---|:---|:---|
 | [<img src="./media/spaceport.png" width="64" alt="Spaceport"> **Spaceport**](https://arn_inside.gitlab.io/arn-skin/) | *Tungsten Grid* | 带有金色点缀的工业炭灰色 |
 | [<img src="./media/nebula.png" width="64" alt="Nebula"> **Nebula**](https://arn_inside.gitlab.io/arn-skin/) | *Amethyst Void* | 紫色、洋红色与青色的宇宙 |
-| [<img src="./media/neptune.png" width="64" alt="Neptune"> **Neptune**](https://arn_inside.gitlab.io/arn-skin/) | *Glacial Navy* | Teal色的海洋冰 |
-| [<img src="./media/uranus.png" width="64" alt="Uranus"> **Uranus**](https://arn_inside.gitlab.io/arn-skin/) | *Glacial Teal* | Teal色与群青蓝变体 |
+| [<img src="./media/neptune.png" width="64" alt="Neptune"> **Neptune**](https://arn_inside.gitlab.io/arn-skin/) | *Glacial Navy* | 青绿色的海洋冰 |
+| [<img src="./media/uranus.png" width="64" alt="Uranus"> **Uranus**](https://arn_inside.gitlab.io/arn-skin/) | *Glacial Teal* | 青绿色与群青蓝的变体 |
 | [<img src="./media/io.png" width="64" alt="Io"> **Io**](https://arn_inside.gitlab.io/arn-skin/) | *Acid Haze* | 深邃黑色上的霓虹青柠绿 |
 | [<img src="./media/jupiter.png" width="64" alt="Jupiter"> **Jupiter**](https://arn_inside.gitlab.io/arn-skin/) | *Amber Light* | 浅色羊皮纸（唯一的浅色主题） |
 | [<img src="./media/mars.png" width="64" alt="Mars"> **Mars**](https://arn_inside.gitlab.io/arn-skin/) | *Amber Storm* | 红土地上的焦橙色 |
@@ -468,13 +468,13 @@ Si vous souhaitez contribuer financièrement au développement et aux futures mi
 
 ---
 
-### **功能特性：**
+### ✨ 功能特性
 
-🚀 **Change Theme (更改主题) :** 通过点击状态栏中的 `Skin`，可以在扩展菜单中瞬间切换 7 款主题。 
+🚀 **Change Theme（更改主题）：** 点击状态栏中的 `Skin`，即可在扩展菜单中瞬间切换 7 款主题。
 
 *通过 IDE 原生颜色选择器实时自定义（400 毫秒延迟）：*
 
-⚡ **Quick Customization (快速自定义) :** 仅需编辑 **12 种关键颜色和 5 个智能开关**，扩展程序会自动生成约 250 种派生的 UI 颜色！
+⚡ **Quick Customization（快速自定义）：** 仅需编辑 **12 种关键颜色和 5 个智能开关**，扩展程序会自动生成约 250 种派生的 UI 颜色！
 
 <div align="center">
 
@@ -483,36 +483,38 @@ Si vous souhaitez contribuer financièrement au développement et aux futures mi
 | 开关 | YES | NO |
 | :--- | :--- | :--- |
 | **Cursor Line Glow**（光标行发光） | 使用强调色高亮当前行与光标 | 完全移除当前行高亮 |
-| **Pure Black Mode**（极黑模式） | 启用最高对比度界面 | 柔化背景对比度以减少视觉疲劳 |
-| **Vivid Selection**（鲜明选择） | 为选中内容启用强调色背景 | 使用中性灰色作为选中背景，专为阅读调校 |
-| **Borderless Mode**（无边框模式） | 隐藏所有 UI 边框 | 应用与文本同色的细微边框 |
-| **Active Tab Highlight**（活动选项卡高亮） | 使用强调色高亮当前选项卡 | 保持所有选项卡视觉统一 |
+| **Pure Black Mode**（极黑模式） | 将所有背景变为近乎纯黑（浅色主题下为近乎纯白） | 保留主题原有的背景色调 |
+| **Vivid Selection**（鲜明选区） | 用强调色标出选中内容和高亮的单词 | 选中内容和高亮的单词使用柔和的中性灰色 |
+| **Borderless Mode**（无边框模式） | 隐藏所有 UI 边框 | 显示所有边框，使用 Borders 颜色或柔和的文本色调 |
+| **Active Tab Highlight**（活动选项卡高亮） | 突出显示活动选项卡：背景、文字及上下边框均使用强调色 | 活动选项卡保持简洁，不使用强调色或边框 |
 
 </div>
 
-🌈 **Advanced: UI Colors (高级：UI 颜色) :** 对每个视觉元素（选项卡、侧边栏、活动栏、终端等）进行细粒度控制。
+💡 轻松撤销修改：点击灯泡即可恢复主题的原始值。
 
-⌨️ **Advanced: Syntax Colors (高级：语法颜色) :** 通过直接编辑语义 token 和 TextMate 规则来调整代码的语法高亮。
+🌈 **Advanced: UI Colors（高级：UI 颜色）：** 对每个视觉元素（选项卡、侧边栏、活动栏、终端等）进行细粒度控制。Quick 和 Advanced 按颜色逐一合并，以最后一次修改为准。
 
-♻️ **Reset (重置) :** 随时撤销所有修改以恢复原始主题。
+⌨️ **Advanced: Syntax Colors（高级：语法颜色）：** 通过直接编辑语义 token 和 TextMate 规则来调整代码的语法高亮。
+
+💾 **Export / Import（导出 / 导入）：** 将所有 ARN-Skin 自定义设置保存到一个可移植的文件中，之后可在另一台电脑上或重新安装后恢复。
+
+♻️ **Reset（重置）：** 随时撤销所有修改，恢复原始主题。
 
 ---
 
 ## 🚀 安装
 
-🌍 **支持 6 种语言的 README**：扩展中未内置臃肿的翻译框架。
-
 <details>
-<summary><b>🔌 通过 IDE 界面（推荐）</b></summary>
+<summary><b>🔌 通过编辑器界面安装（推荐）</b></summary>
 
 <br>
 
-支持 Antigravity IDE, VSCode, Cursor, Windsurf, VSCodium 及其他分支（使用 Microsoft Marketplace 或 Open VSX 的版本）。
+适用于 Antigravity IDE、VS Code、Cursor、Windsurf、VSCodium，以及其他使用 VS Marketplace 或 Open VSX 的 VS Code 分支。
 
-1. 打开 **Extensions (扩展)** 视图 (`Ctrl+Shift+X`)。
+1. 打开**扩展**视图（`Ctrl+Shift+X`）。
 2. 搜索 `ARN-Skin`。
-> 💡 **提示：** 按**名称**（而**不是**按受欢迎程度、相关性或下载量）过滤搜索结果，以便轻松找到它。
-3. 点击 **Install (安装)** 并启用扩展。
+> 💡 **提示：** 将搜索结果按**名称**排序（而**不是**按热门程度、相关性或安装计数），即可轻松找到该扩展。
+3. 点击**安装**并启用扩展程序。
 
 </details>
 
@@ -521,11 +523,11 @@ Si vous souhaitez contribuer financièrement au développement et aux futures mi
 
 <br>
 
-1. 下载 [`antigravity-arn-skin.vsix`](https://gitlab.com/arn_inside/arn-skin/releases/latest/download/antigravity-arn-skin.vsix) 文件。
-2. 在 Antigravity IDE 中，打开 Extensions (扩展) 视图 (`Ctrl+Shift+X`)。
-3. 点击侧边栏顶部的 "..." 菜单（视图和更多操作）。
-4. 选择 **Install from VSIX... (从 VSIX 安装...)**
-5. 选择 `antigravity-arn-skin.vsix` 文件并启用扩展。
+1. 下载 [`arn-skin.vsix`](https://github.com/jzbakh/arn-skin/releases/latest/download/arn-skin.vsix) 文件。
+2. 在您的编辑器中，打开**扩展**视图（`Ctrl+Shift+X`）。
+3. 点击侧边栏顶部的“...”菜单（视图和更多操作）。
+4. 选择 **从 VSIX 安装...**
+5. 选择下载的文件并启用扩展程序。
 
 </details>
 
@@ -534,13 +536,13 @@ Si vous souhaitez contribuer financièrement au développement et aux futures mi
 
 <br>
 
-100% 原生 JavaScript 扩展 — 无需 build 步骤。代码可读且可审计。
+纯原生 JavaScript，无需构建步骤：代码清晰易读且易于审计。
 
 1. 创建一个名为 `arn-skin` 的文件夹，然后下载并将 `schemas`、`themes` 和 `media` 文件夹，以及 `extension.js`、`package.json` 和 `README.md` 文件放入其中。
-2. 将此文件夹复制到您的 IDE 扩展目录中（以 Antigravity IDE 为例）：
-   - **Windows**：`%USERPROFILE%\.antigravity\extensions\`
-   - **macOS/Linux**：`~/.antigravity\extensions\`
-3. 重启 IDE 并启用扩展。
+2. 将此文件夹复制到您的编辑器扩展目录中：
+   - **Antigravity IDE**：`%USERPROFILE%\.antigravity-ide\extensions\`（Windows）或 `~/.antigravity-ide/extensions/`（macOS/Linux）
+   - **VS Code**：`%USERPROFILE%\.vscode\extensions\`（Windows）或 `~/.vscode/extensions/`（macOS/Linux）
+3. 重启编辑器并启用扩展程序。
 
 </details>
 
@@ -553,19 +555,25 @@ Si vous souhaitez contribuer financièrement au développement et aux futures mi
 <div align="center">
 
 <p align="center">
-  <b>💫 喜欢这个项目吗？在 Gitlab 上留下一颗 ⭐ 来支持它吧！</b>
+  <b>💫 喜欢这个项目吗？在 GitHub 或 GitLab 上点亮 ⭐ 来支持一下吧！</b>
 </p>
 <p align="center">
-  <a href="https://gitlab.com/arn_inside/arn-skin">
-    <img src="https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=social" alt="Star on Gitlab">
+  <a href="https://github.com/jzbakh/arn-skin">
+    <img src="https://img.shields.io/github/stars/jzbakh/arn-skin?style=social" alt="在 GitHub 上点亮星星">
   </a>
+  <a href="https://gitlab.com/arn_inside/arn-skin">
+    <img src="https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=social" alt="在 GitLab 上点亮星星">
+  </a>
+</p>
+<p align="center">
+  在 <a href="https://open-vsx.org/extension/jzbakh/antigravity-arn-skin/reviews">Open VSX</a> 或 <a href="https://marketplace.visualstudio.com/items?itemName=jzbakh.antigravity-arn-skin&ssr=false#review-details">VS Marketplace</a> 上留下评价，也能帮助更多人发现它。
 </p>
 
 <br>
 
 <p align="center">
-  <a href="https://gitlab.com/arn_inside/arn-skin">
-    <img src="https://api.star-history.com/svg?repos=jzbakh/antigravity-arn-skin&type=Date"  width="600" alt="Star History Chart">
+  <a href="https://github.com/jzbakh/arn-skin">
+    <img src="https://api.star-history.com/svg?repos=jzbakh/arn-skin&type=Date"  width="600" alt="星标历史图表">
   </a>
 </p>
 
@@ -575,7 +583,7 @@ Si vous souhaitez contribuer financièrement au développement et aux futures mi
 
 ### ☕ 资金支持
 
-如果您希望在资金上支持本项目的开发与未来的更新，您可以请我喝杯咖啡或使用加密货币进行捐赠。非常感谢！ 🫶
+如果您愿意资助本项目的开发和后续更新，可以请我喝杯咖啡，或使用加密货币捐赠。非常感谢！🫶
 
 <div align="center">
 
@@ -586,35 +594,35 @@ Si vous souhaitez contribuer financièrement au développement et aux futures mi
 **加密货币捐赠：**
 
 <details>
-<summary><b>₿ Bitcoin (比特币, BTC)</b></summary>
+<summary><b>₿ 比特币（BTC）</b></summary>
 
 <br>
 
 `bc1q4zu08uxpfra9aecp28x6zelg23qdcdeg680hlg`
 
-![Bitcoin (BTC)](./media/Bitcoin.png)
+![比特币（BTC）](./media/Bitcoin.png)
 
 </details>
 
 <details>
-<summary><b>Ethereum (以太坊, ETH) & ERC-20 代币</b></summary>
+<summary><b>以太坊（ETH）与 ERC-20 代币</b></summary>
 
 <br>
 
 `0xdc593BfaD6Be146400B713c2787DCCb9392AC206`
 
-![Ethereum (ETH) & ERC-20](./media/Ethereum.png)
+![以太坊（ETH）与 ERC-20 代币](./media/Ethereum.png)
 
 </details>
 
 <details>
-<summary><b>Solana (索拉纳, SOL)</b></summary>
+<summary><b>索拉纳（SOL）</b></summary>
 
 <br>
 
 `FwBu1oqSCdfDvvFhy3crYBkgzjDuwDcU5gxXzVCqxTn9`
 
-![Solana (SOL)](./media/Solana.png)
+![索拉纳（SOL）](./media/Solana.png)
 
 </details>
 
@@ -622,7 +630,7 @@ Si vous souhaitez contribuer financièrement au développement et aux futures mi
 
 <div align="center">
 <p align="center">
-  <b>由 <a href="https://gitlab.com/arn_inside">jzbakh</a> 用 🩵 制作</b>
+  <b>由 <a href="https://github.com/jzbakh">jzbakh</a> 用 🩵 制作</b>
 </p>
 
 ---
