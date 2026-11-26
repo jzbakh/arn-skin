@@ -2,17 +2,18 @@
 
 # ARN-Skin - Explore 7 space-themed skins + customization to enhance your IDE.
 
-[![Version](https://img.shields.io/gitlab/v/tag/arn_inside/arn-skin?label=version&color=blue&sort=semver)](https://gitlab.com/arn_inside/arn-skin/-/releases)
+[![Version](https://img.shields.io/github/v/release/jzbakh/arn-skin?label=version&color=blue&sort=semver)](https://github.com/jzbakh/arn-skin/releases)
 [![VS Marketplace Downloads](https://img.shields.io/endpoint?url=https://gitlab.com/arn_inside/arn-skin/-/raw/badges-gitlab/.gitlab/badges/marketplace-downloads.json)](https://marketplace.visualstudio.com/items?itemName=jzbakh.antigravity-arn-skin)
 [![Open VSX Downloads](https://img.shields.io/endpoint?url=https://gitlab.com/arn_inside/arn-skin/-/raw/badges-gitlab/.gitlab/badges/openvsx-downloads.json)](https://open-vsx.org/extension/jzbakh/antigravity-arn-skin)
 
-[![GitLab stars](https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=flat&color=gold)](https://gitlab.com/arn_inside/arn-skin)
-[![GitLab issues](https://img.shields.io/gitlab/issues/open/arn_inside/arn-skin)](https://gitlab.com/arn_inside/arn-skin/-/issues)
-[![License](https://img.shields.io/gitlab/license/arn_inside/arn-skin?color=blue)](https://gitlab.com/arn_inside/arn-skin)
+[![GitHub stars](https://img.shields.io/github/stars/jzbakh/arn-skin?style=flat&color=gold&logo=github)](https://github.com/jzbakh/arn-skin)
+[![GitLab stars](https://img.shields.io/gitlab/stars/arn_inside/arn-skin?style=flat&color=gold&logo=gitlab)](https://gitlab.com/arn_inside/arn-skin)
+[![GitHub issues](https://img.shields.io/github/issues/jzbakh/arn-skin)](https://github.com/jzbakh/arn-skin/issues)
+[![License](https://img.shields.io/github/license/jzbakh/arn-skin?color=blue)](https://github.com/jzbakh/arn-skin)
 
-[![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](https://gitlab.com/arn_inside/arn-skin/blob/main/package.json)
-[![Telemetry](https://img.shields.io/badge/telemetry-none-success.svg)](https://gitlab.com/arn_inside/arn-skin/blob/main/extension.js)
-[![Spyware](https://img.shields.io/badge/spyware-0%25-success.svg)](https://gitlab.com/arn_inside/arn-skin/blob/main/extension.js)
+[![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](https://github.com/jzbakh/arn-skin/blob/main/package.json)
+[![Telemetry](https://img.shields.io/badge/telemetry-none-success.svg)](https://github.com/jzbakh/arn-skin/blob/main/extension.js)
+[![Spyware](https://img.shields.io/badge/spyware-0%25-success.svg)](https://github.com/jzbakh/arn-skin/blob/main/extension.js)
 
 <p align="center">
   <a href="https://arn_inside.gitlab.io/arn-skin/">
