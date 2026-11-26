@@ -3142,10 +3142,11 @@ function activate(context) {
                 statusBarItem.text = '$(paintcan) Skin';
                 statusBarItem.tooltip = 'Customize theme colors.';
             }
-            statusBarItem.show();
         } else {
-            statusBarItem.hide();
+            statusBarItem.text = '$(paintcan) Skin';
+            statusBarItem.tooltip = 'Choose an ARN-Skin theme.';
         }
+        statusBarItem.show();
     };
     updateStatusBar();
 
@@ -3277,10 +3278,41 @@ function activate(context) {
         })
     );
 
+    // Menu order follows package.json declaration order.
+    const pickTheme = async (themes, activeLabel) => {
+        try {
+            const themeItems = themes.map(t => {
+                const planet = planetOf(t.label);
+                return {
+                    label: t.label,
+                    description: t.label === activeLabel ? '(Active)' : '',
+                    iconPath: planet
+                        ? vscode.Uri.joinPath(context.extensionUri, 'media', `${planet.toLowerCase()}.png`)
+                        : undefined,
+                };
+            });
+
+            const selected = await vscode.window.showQuickPick(themeItems, {
+                placeHolder: "Choose an ARN-Skin theme to apply"
+            });
+            if (selected && selected.label !== activeLabel) {
+                await enqueue(async () => {
+                    if (activeLabel) await closeCustomisationFilesForTheme(activeLabel, skipReapplyUris);
+                    const wb = vscode.workspace.getConfiguration('workbench');
+                    await wb.update('colorTheme', selected.label, vscode.ConfigurationTarget.Global);
+                });
+            }
+        } catch (err) {
+            vscode.window.showErrorMessage("Unable to list themes: " + err.message);
+            console.error('[ARN]', err);
+        }
+    };
+
     context.subscriptions.push(
         vscode.commands.registerCommand('arn.manageSkin', async () => {
             const data = await getActiveThemeData(context);
-            if (!data) return;
+            // With another theme active, the button offers the ARN themes.
+            if (!data) return pickTheme((await readPackageJson(context)).contributes.themes, null);
             const { themeLabel, themeJson, packageJson } = data;
 
             const hasCustomization = hasThemeCustomization(themeLabel);
@@ -3403,36 +3435,7 @@ function activate(context) {
                 return;
             }
 
-            if (choice.action === 'changeTheme') {
-                try {
-                    // Menu order follows package.json declaration order.
-                    const themeItems = packageJson.contributes.themes.map(t => {
-                        const planet = planetOf(t.label);
-                        return {
-                            label: t.label,
-                            description: t.label === themeLabel ? '(Active)' : '',
-                            iconPath: planet
-                                ? vscode.Uri.joinPath(context.extensionUri, 'media', `${planet.toLowerCase()}.png`)
-                                : undefined,
-                        };
-                    });
-
-                    const selected = await vscode.window.showQuickPick(themeItems, {
-                        placeHolder: "Choose an ARN-Skin theme to apply"
-                    });
-                    if (selected && selected.label !== themeLabel) {
-                        await enqueue(async () => {
-                            await closeCustomisationFilesForTheme(themeLabel, skipReapplyUris);
-                            const wb = vscode.workspace.getConfiguration('workbench');
-                            await wb.update('colorTheme', selected.label, vscode.ConfigurationTarget.Global);
-                        });
-                    }
-                } catch (err) {
-                    vscode.window.showErrorMessage("Unable to list themes: " + err.message);
-                    console.error('[ARN]', err);
-                }
-                return;
-            }
+            if (choice.action === 'changeTheme') return pickTheme(packageJson.contributes.themes, themeLabel);
         })
     );
 

@@ -210,14 +210,17 @@ describe('arn.manageSkin — menu actions', function () {
         assert.match(errors[0], /Unable to list themes: boom/);
     });
 
-    it('does nothing at all when the active theme is not an ARN theme', async () => {
+    it('offers the ARN themes when another theme is active', async () => {
         await wb().update('colorTheme', 'Default Dark+', vscode.ConfigurationTarget.Global);
-        let asked = false;
-        vscode.window.showQuickPick = async () => { asked = true; return undefined; };
+        let themeItems;
+        vscode.window.showQuickPick = async (items) => { themeItems = await items; return themeItems.find(i => i.label === NEBULA); };
 
         await vscode.commands.executeCommand('arn.manageSkin');
 
-        assert.equal(asked, false, 'the menu must not even open');
+        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8'));
+        assert.deepEqual(themeItems.map(i => i.label), pkg.contributes.themes.map(t => t.label), 'the theme list, not the menu');
+        assert.ok(themeItems.every(i => i.description === ''), 'no ARN theme is active');
+        assert.equal(wb().get('colorTheme'), NEBULA);
         await wb().update('colorTheme', MARS, vscode.ConfigurationTarget.Global);
     });
 });
