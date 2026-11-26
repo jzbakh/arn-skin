@@ -3323,7 +3323,7 @@ function activate(context) {
                     description: 'Restore customizations from a backup file (overwrites current)'
                 },
                 {
-                    label: `✨ Change Theme`,
+                    label: `🚀 Change Theme`,
                     action: 'changeTheme',
                     description: 'Quickly switch between ARN-Skin themes'
                 }
