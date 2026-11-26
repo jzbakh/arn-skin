@@ -1735,6 +1735,7 @@ const THEMES_1_0_5 = {
             'editorBracketHighlight.foreground1': '#d99815',
             'editorOverviewRuler.infoForeground': '#d99815',
             'inlineChatInput.placeholderForeground': '#b8a682',
+            'tab.activeForeground': '#ec1f04',
             'tab.activeBorderTop': '#e8a820',
             'activityBar.foreground': '#dfb911',
             'statusBarItem.remoteForeground': '#a87825',
