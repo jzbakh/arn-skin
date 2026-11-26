@@ -1750,6 +1750,7 @@ const THEMES_1_0_5 = {
             'panelTitle.activeForeground': '#c2651a',
             'list.activeSelectionIconForeground': '#ff6a3d',
             'list.inactiveSelectionIconForeground': '#fdbd31',
+            'input.background': '#1a1108',
             'input.placeholderForeground': '#5a4638',
             'editorHoverWidget.background': '#290316',
         },

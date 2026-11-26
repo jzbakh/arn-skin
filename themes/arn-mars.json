@@ -258,7 +258,7 @@
     // ─────────────────────────────────────────────
     // INPUTS & VALIDATION
     // ─────────────────────────────────────────────
-    "input.background": "#1a1108",
+    "input.background": "#2e2015",
     "input.foreground": "#f0dfc8",
     "input.border": "#00000000",
     "input.placeholderForeground": "#9a8060",
