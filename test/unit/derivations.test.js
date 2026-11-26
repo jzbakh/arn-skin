@@ -71,6 +71,21 @@ describe('Quick derivations — input placeholders', () => {
     }
 });
 
+describe('Quick derivations — line numbers and idle activity icons', () => {
+    for (const th of themes) {
+        it(`keeps them at 3:1 or more on ${th.file}`, () => {
+            // The theme's own text, one step off so that it counts as edited.
+            const text = th.bases.text.slice(0, 6) + (th.bases.text[6].toLowerCase() === 'f' ? 'e' : 'f');
+            const colors = derive(th, { 'ui.baseForeground': text });
+            for (const [key, surface] of [['editorLineNumber.foreground', th.bases.bg], ['activityBar.inactiveForeground', th.bases.bgSec],
+                ['activityBarTop.inactiveForeground', th.bases.bgSec]]) {
+                const ratio = contrast(seen(colors[key], surface), surface);
+                assert.ok(ratio >= 3, `${key}: ${ratio.toFixed(2)}:1`);
+            }
+        });
+    }
+});
+
 describe('Quick derivations — a light background', () => {
     it('dims the labels of Jupiter about as much as Jupiter does', () => {
         // A text one step off the theme's own, so that every text key is derived.

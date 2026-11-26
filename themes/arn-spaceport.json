@@ -24,7 +24,7 @@
     "editor.lineHighlightBorder": "#30343a",
     "editor.hoverHighlightBackground": "#E8D44C20",
     "editor.rangeHighlightBackground": "#E8D44C15",
-    "editorLineNumber.foreground": "#3e4248",
+    "editorLineNumber.foreground": "#706c66",
     "editorLineNumber.activeForeground": "#e8d44c",
     "editorRuler.foreground": "#3e4248",
     "editorWhitespace.foreground": "#3e424880",
@@ -142,7 +142,7 @@
     // ─────────────────────────────────────────────
     "activityBar.background": "#0e1012",
     "activityBar.foreground": "#e8d44c",
-    "activityBar.inactiveForeground": "#3e4248",
+    "activityBar.inactiveForeground": "#706c66",
     "activityBar.border": "#00000000",
     "activityBar.activeBorder": "#e8d44c",
     "activityBar.activeBackground": "#e8d44c10",
@@ -151,7 +151,7 @@
     "activityBarBadge.foreground": "#000000",
     "activityBarTop.foreground": "#e8d44c",
     "activityBarTop.activeBorder": "#00000000",
-    "activityBarTop.inactiveForeground": "#3e4248",
+    "activityBarTop.inactiveForeground": "#706c66",
     // ─────────────────────────────────────────────
     // STATUS BAR
     // ─────────────────────────────────────────────

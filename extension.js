@@ -324,7 +324,7 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     add('editorStickyScroll.background', bg, 'bg');
 
     // ---- Line numbers, rulers, whitespace, indent guides
-    add('editorLineNumber.foreground', A(text, dim('48', '58')), 'text', 'bg');
+    add('editorLineNumber.foreground', A(text, dim('70', '80')), 'text', 'bg');
     add('editorLineNumber.activeForeground', accent, 'accent');
     add('editorIndentGuide.background1', A(text, '20'), 'text', 'bg');
     add('editorIndentGuide.activeBackground1', A(accent, '45'), 'accent');
@@ -375,13 +375,13 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     // ---- Activity bar
     add('activityBar.background', bgSec, 'bgSec');
     add('activityBar.foreground', accent, 'accent');
-    add('activityBar.inactiveForeground', A(text, dim('48', '88')), 'text', 'bgSec');
+    add('activityBar.inactiveForeground', A(text, dim('70', '88')), 'text', 'bgSec');
     add('activityBar.activeBorder', activeBorder, 'activeBorder');
     add('activityBar.activeBackground', A(accent, '10'), 'accent');
     add('activityBarBadge.background', accent, 'accent');
     add('activityBarBadge.foreground', bg, 'bg');
     add('activityBarTop.foreground', accent, 'accent');
-    add('activityBarTop.inactiveForeground', A(text, dim('48', '88')), 'text', 'bgSec');
+    add('activityBarTop.inactiveForeground', A(text, dim('70', '88')), 'text', 'bgSec');
 
     // ---- Status bar
     add('statusBar.background', bgSec, 'bgSec');
@@ -1640,7 +1640,10 @@ function legacyPureBlackSurfaces(quick, themeJson) {
 const THEMES_1_0_5 = {
     Spaceport: {
         colors: {
+            'editorLineNumber.foreground': '#3e4248',
             'inlineChatInput.placeholderForeground': '#484e56',
+            'activityBar.inactiveForeground': '#3e4248',
+            'activityBarTop.inactiveForeground': '#3e4248',
             'list.activeSelectionIconForeground': '#e8d44c',
             'list.inactiveSelectionIconForeground': '#605c56',
             'input.placeholderForeground': '#484e56',
@@ -1652,6 +1655,9 @@ const THEMES_1_0_5 = {
     },
     Nebula: {
         colors: {
+            'editorLineNumber.foreground': '#5b537a',
+            'activityBar.inactiveForeground': '#5b537a',
+            'activityBarTop.inactiveForeground': '#5b537a',
             'list.activeSelectionIconForeground': '#00e5ff',
             'list.inactiveSelectionIconForeground': '#7e789e',
         },
@@ -1662,6 +1668,9 @@ const THEMES_1_0_5 = {
     },
     Neptune: {
         colors: {
+            'editorLineNumber.foreground': '#384C6A',
+            'activityBar.inactiveForeground': '#384C6A',
+            'activityBarTop.inactiveForeground': '#384C6A',
             'list.activeSelectionIconForeground': '#3FE5FF',
             'list.inactiveSelectionIconForeground': '#94A8CC',
         },
@@ -1672,7 +1681,11 @@ const THEMES_1_0_5 = {
     },
     Uranus: {
         colors: {
+            'editorLineNumber.foreground': '#3a5858',
+            'editorLineNumber.activeForeground': '#6a8a8a',
             'inlineChatInput.placeholderForeground': '#3a5858',
+            'activityBar.inactiveForeground': '#3a5858',
+            'activityBarTop.inactiveForeground': '#3a5858',
             'list.activeSelectionIconForeground': '#3ed8c0',
             'list.inactiveSelectionIconForeground': '#6a8a8a',
             'input.placeholderForeground': '#3a5858',
@@ -1684,9 +1697,13 @@ const THEMES_1_0_5 = {
     },
     Io: {
         colors: {
+            'editorLineNumber.foreground': '#3e4030',
+            'activityBar.inactiveForeground': '#3e4030',
+            'activityBarTop.inactiveForeground': '#3e4030',
             'list.activeSelectionIconForeground': '#c0ff00',
             'list.inactiveSelectionIconForeground': '#a0a880',
             'input.placeholderForeground': '#5a6040',
+            'breadcrumb.foreground': '#5a6040',
         },
         semantic: {},
         rules: [
@@ -1695,6 +1712,7 @@ const THEMES_1_0_5 = {
     },
     Jupiter: {
         colors: {
+            'editorLineNumber.foreground': '#c4ad7a',
             'inlineChatInput.placeholderForeground': '#b8a682',
             'list.activeSelectionIconForeground': '#8a5810',
             'list.inactiveSelectionIconForeground': '#5e4c30',
@@ -1707,7 +1725,10 @@ const THEMES_1_0_5 = {
     },
     Mars: {
         colors: {
+            'editorLineNumber.foreground': '#5a4638',
             'inlineChatInput.placeholderForeground': '#5a4638',
+            'activityBar.inactiveForeground': '#5a4638',
+            'activityBarTop.inactiveForeground': '#5a4638',
             'list.activeSelectionIconForeground': '#ff6a3d',
             'list.inactiveSelectionIconForeground': '#fdbd31',
             'input.placeholderForeground': '#5a4638',

@@ -25,7 +25,7 @@
     "editor.lineHighlightBorder": "#ebe3cc60",
     "editor.hoverHighlightBackground": "#D9981520",
     "editor.rangeHighlightBackground": "#D9981515",
-    "editorLineNumber.foreground": "#c4ad7a",
+    "editorLineNumber.foreground": "#958360",
     "editorLineNumber.activeForeground": "#5e4c30",
     "editorRuler.foreground": "#ebe3cc",
     "editorWhitespace.foreground": "#c4ad7a80",

@@ -543,7 +543,7 @@ describe('Quick and Advanced layers — user transitions', function () {
         fs.rmSync(emptyDir, { recursive: true, force: true });
 
         assert.deepEqual(colorsOf(), __testing.composeOutputs(state, themeJson).colors);
-        assert.equal(colorsOf()['editorLineNumber.foreground'], '#EAC6C648');
+        assert.equal(colorsOf()['editorLineNumber.foreground'], '#EAC6C670');
     });
 
     it('rebuilds at startup a theme an earlier version customised through Quick', async () => {
@@ -562,7 +562,7 @@ describe('Quick and Advanced layers — user transitions', function () {
         fs.rmSync(legacyDir, { recursive: true, force: true });
 
         assert.deepEqual(__testing.readStoredState(MARS), { quick: { 'ui.baseForeground': '#EAC6C6' } });
-        assert.equal(colorsOf()['editorLineNumber.foreground'], '#EAC6C648');
+        assert.equal(colorsOf()['editorLineNumber.foreground'], '#EAC6C670');
     });
 
     it('rebuilds at startup a theme an earlier version customised through Advanced only', async () => {
