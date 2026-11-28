@@ -5,6 +5,53 @@ All notable changes to ARN-Skin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] — 2026-11-28
+
+### Added
+
+- Export Customizations and Import Customizations save every ARN-Skin customization to a portable file and restore it, on another machine or after a reinstall.
+- Quick reads every notation the color picker writes: hex, rgb, hsl, hwb, lab, lch, oklab and oklch.
+- A rejected Quick color is underlined and the previous one stays applied.
+- On a changed Quick line, the light bulb restores the theme's value.
+- The four Status colors also paint the squiggles, the Problems icons, the F8 widget and the minimap marks.
+- Nebula: thin violet borders between the side bar, the editor groups and the panel, and around the notifications and the suggest list.
+- A notification asks for a GitHub star or a store review once per minor version.
+
+### Changed
+
+- Quick and Advanced edits combine color by color: the last change wins.
+- Saved customizations are rebuilt at startup, so theme updates reach them. Customizations from 1.0.5 are migrated.
+- Quick colors are derived the way the themes are, and a color set in Quick wins over a display option.
+- Pure-Black keeps the theme's hue and darkens more surfaces.
+- Vivid-Selection's neutral selection is softer.
+- The highlighted tab label and the Glow line number reach a 4.5:1 contrast.
+- A Borders color also recolors the theme's own borders.
+- The Skin button shows with any color theme. With another theme, it opens the list of ARN-Skin themes.
+- Change Theme has a rocket in the Skin menu.
+- Mars: a redesigned interface, with fields and floating windows that stand out.
+- Jupiter uses dark gold for gold text and selected rows, and blue for info.
+- Spaceport uses steel blue for info, and its interface text is brighter.
+- User-facing texts spell the name ARN-Skin and use American spelling.
+- Repository, issue and security links point to GitHub.
+
+### Fixed
+
+- Semantic token colors set in Advanced Syntax now take effect.
+- The warning that names a rejected Quick color now shows.
+- With Pure-Black off, the dark themes keep their backgrounds and readable menus.
+- An invalid color in the Advanced files raises a single warning.
+- Input placeholders, line numbers and idle activity-bar icons are readable in every theme.
+- A selected list row keeps its icon colors, so a selected error stays red.
+- Markdown quotes get their color in every theme.
+- The status bar keeps its color when no folder is open.
+- Spaceport: find matches have an outline.
+- Nebula: the unfocused active tab has its shape back, the terminal greens, cyans and blues are distinct, and properties have one color.
+- Neptune: the selection stays visible when the editor loses focus, and the active panel title uses the accent.
+- Jupiter: the settings fields show, the active tab no longer looks like an error, and the active icon, the remote item and the tab line are darker.
+- Mars: the hover widget is back in the palette, and the input fields, the count badges and the active panel title are visible.
+- Io and Uranus: Peek highlights no longer hide the text. Uranus's F8 widget has its frame back.
+- Jupiter and Uranus: the terminal yellows are distinct, and so are Jupiter's grays.
+
 ## [1.0.5] — 2026-07-13
 
 ### Changed
@@ -97,6 +144,7 @@ First public release.
 - Zero runtime dependencies — single-file JavaScript extension.
 - GPL-3.0-or-later licensed.
 
+[1.1.0]: https://gitlab.com/arn_inside/arn-skin/-/tags/v1.1.0
 [1.0.5]: https://gitlab.com/arn_inside/arn-skin/-/tags/v1.0.5
 [1.0.4]: https://gitlab.com/arn_inside/arn-skin/-/tags/v1.0.4
 [1.0.3]: https://gitlab.com/arn_inside/arn-skin/-/tags/v1.0.3
