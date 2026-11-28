@@ -5,6 +5,12 @@ All notable changes to ARN-Skin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] — 2026-11-28
+
+### Changed
+
+- The README shows the demo video instead of the animation.
+
 ## [1.1.0] — 2026-11-28
 
 ### Added
@@ -144,6 +150,7 @@ First public release.
 - Zero runtime dependencies — single-file JavaScript extension.
 - GPL-3.0-or-later licensed.
 
+[1.1.1]: https://gitlab.com/arn_inside/arn-skin/-/tags/v1.1.1
 [1.1.0]: https://gitlab.com/arn_inside/arn-skin/-/tags/v1.1.0
 [1.0.5]: https://gitlab.com/arn_inside/arn-skin/-/tags/v1.0.5
 [1.0.4]: https://gitlab.com/arn_inside/arn-skin/-/tags/v1.0.4
