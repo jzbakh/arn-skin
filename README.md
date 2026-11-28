@@ -16,9 +16,7 @@
 [![Spyware](https://img.shields.io/badge/spyware-0%25-success.svg)](https://github.com/jzbakh/arn-skin/blob/main/extension.js)
 
 <p align="center">
-  <a href="https://arn_inside.gitlab.io/arn-skin/">
-    <img src="./media/ARN-Skin_demo.png" alt="ARN-Skin Video">
-  </a>
+  <video src="https://github.com/user-attachments/assets/11b1e624-03df-46ab-abf8-b4b3c32c18f6" controls width="100%"></video>
 </p>
 
 <br>
