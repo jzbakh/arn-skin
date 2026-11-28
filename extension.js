@@ -1842,16 +1842,21 @@ async function legacyState(context, themeLabel, themeJson) {
     if (!cc && !tc && !sc) return null;
 
     const then = THEMES_1_0_5[planetOf(themeLabel)];
+    // What 1.0.5 wrote is replayed with the bases of the theme it shipped.
+    const old = { ...themeJson, colors: { ...themeJson.colors, ...then.colors } };
     let quick = {};
+    let quick105 = {};
     const quickText = await readTextIfExists(quickUriFor(context, themeLabel));
     if (quickText !== null) {
         const listed = resolveQuickInput(quickText, quickDefaults(themeJson)).quick;
-        quick = compactQuick(compactQuick(listed, { ...themeJson, colors: { ...themeJson.colors, ...then.colors } }), themeJson);
+        quick105 = compactQuick(listed, old);
+        quick = compactQuick(quick105, themeJson);
     }
     const derived = deriveQuickColors(expandQuick(quick, themeJson), themeJson);
     return compactState({
         quick,
-        ui: dropThemeValues([then.colors, legacyToggleColors(quick, themeJson), legacyBaseColors(quick, themeJson), legacyPureBlackSurfaces(quick, themeJson)]
+        ui: dropThemeValues([then.colors, deriveQuickColors(expandQuick(quick105, old), old), legacyToggleColors(quick105, old),
+            legacyBaseColors(quick105, old), legacyPureBlackSurfaces(quick105, old)]
             .reduce(diffColors, diffColors(cc, { ...(themeJson.colors || {}), ...derived })),
         newlyDerivedKeys(quick, themeJson, derived), themeJson),
         semantic: diffSemantic(diffSemantic({ ...(tc && tc.semanticTokenColors), ...(sc && sc.rules) }, themeJson.semanticTokenColors),

@@ -153,7 +153,9 @@ describe('Colours the toggles of 1.0.5 wrote', () => {
     const jupiter = t.parseJsonc(fs.readFileSync(path.join(__dirname, '..', '..', 'themes', 'arn-jupiter.json'), 'utf8'));
 
     it('gives back the lifted backgrounds of Pure-Black NO', () => {
-        const dark = t.legacyToggleColors({ 'ui.pureBlack': 'no' }, mars);
+        // Replayed, as legacyState does, with the Mars 1.0.5 shipped.
+        const mars105 = { ...mars, colors: { ...mars.colors, ...t.THEMES_1_0_5.Mars.colors } };
+        const dark = t.legacyToggleColors({ 'ui.pureBlack': 'no' }, mars105);
         assert.equal(Object.keys(dark).length, 20);
         assert.equal(dark['editor.background'], '#150D08');
         assert.equal(dark['sideBar.background'], '#23160D');
