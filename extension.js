@@ -389,7 +389,7 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
     add('statusBar.debuggingBackground', accent, 'accent');
     add('statusBar.debuggingForeground', bg, 'bg');
     add('statusBar.noFolderBackground', bgSec, 'bgSec');
-    add('statusBar.noFolderForeground', A(text, dim('A8', 'F8')), 'text', 'bgSec');
+    add('statusBar.noFolderForeground', A(text, dim('B0', 'F8')), 'text', 'bgSec');
     add('statusBarItem.remoteBackground', accent, 'accent');
     add('statusBarItem.remoteForeground', bg, 'bg');
     add('statusBarItem.hoverBackground', A(accent, '15'), 'accent');
@@ -688,6 +688,8 @@ function generateQuickTheme(parsedUi, dirty, themeType, themeColors = {}) {
         };
         darken(PURE_BLACK_AREAS, 0.5);
         darken(PURE_BLACK_WIDGETS, 0.3);
+        // Without a folder, the status bar keeps its colour.
+        colors['statusBar.noFolderBackground'] = secondary;
     }
 
     // ---- Active Tab Highlight (Material Theme inspired)
@@ -1648,6 +1650,8 @@ const THEMES_1_0_5 = {
             'activityBar.inactiveForeground': '#3e4248',
             'activityBarTop.inactiveForeground': '#3e4248',
             'statusBar.foreground': '#605c56',
+            'statusBar.noFolderBackground': '#181a1e',
+            'statusBar.noFolderForeground': '#605c56',
             'panelTitle.inactiveForeground': '#605c56',
             'list.activeSelectionIconForeground': '#e8d44c',
             'list.inactiveSelectionIconForeground': '#605c56',
@@ -1677,6 +1681,8 @@ const THEMES_1_0_5 = {
             'sideBar.border': '#00000000',
             'activityBar.inactiveForeground': '#5b537a',
             'activityBarTop.inactiveForeground': '#5b537a',
+            'statusBar.noFolderBackground': '#1B1326',
+            'statusBar.noFolderForeground': '#7e789e',
             'panel.border': '#00000000',
             'terminal.ansiBlue': '#00e5ff',
             'terminal.ansiBrightBlue': '#66f0ff',
@@ -1703,6 +1709,7 @@ const THEMES_1_0_5 = {
             'editorLineNumber.foreground': '#384C6A',
             'activityBar.inactiveForeground': '#384C6A',
             'activityBarTop.inactiveForeground': '#384C6A',
+            'statusBar.noFolderBackground': '#060D20',
             'panelTitle.activeForeground': '#617eff',
             'terminal.inactiveSelectionBackground': '#2C42A530',
             'list.activeSelectionIconForeground': '#3FE5FF',
@@ -1720,6 +1727,7 @@ const THEMES_1_0_5 = {
             'inlineChatInput.placeholderForeground': '#3a5858',
             'activityBar.inactiveForeground': '#3a5858',
             'activityBarTop.inactiveForeground': '#3a5858',
+            'statusBar.noFolderBackground': '#0c161e',
             'terminal.ansiBrightYellow': '#f0c888',
             'list.activeSelectionIconForeground': '#3ed8c0',
             'list.inactiveSelectionIconForeground': '#6a8a8a',
@@ -1761,6 +1769,7 @@ const THEMES_1_0_5 = {
             'tab.activeForeground': '#ec1f04',
             'tab.activeBorderTop': '#e8a820',
             'activityBar.foreground': '#dfb911',
+            'statusBar.noFolderBackground': '#efe4c4',
             'statusBarItem.remoteForeground': '#a87825',
             'terminal.ansiBrightBlack': '#5e4c30',
             'terminal.ansiBrightYellow': '#f4b830',
@@ -1802,6 +1811,7 @@ const THEMES_1_0_5 = {
             'activityBar.inactiveForeground': '#5a4638',
             'activityBarBadge.background': '#130b03',
             'activityBarTop.inactiveForeground': '#5a4638',
+            'statusBar.noFolderBackground': '#4a2b13',
             'panelTitle.activeForeground': '#c2651a',
             'list.activeSelectionIconForeground': '#ff6a3d',
             'list.inactiveSelectionIconForeground': '#fdbd31',
