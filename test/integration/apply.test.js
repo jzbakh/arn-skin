@@ -287,14 +287,13 @@ describe('Apply pipeline — full integration', function () {
 
     describe('applyQuick — Active-Tab-Highlight toggle', () => {
         it('YES paints the active tab with accent fg / borders / tinted bg', async () => {
-            await applyQuick(fakeCtx, buildCss(themeBases, {}, { activeTabHighlight: 'YES' }));
+            // An accent that reads on the tab: a dim one is pulled toward the text.
+            const accent = '#ff8800';
+            await applyQuick(fakeCtx, buildCss(themeBases, { accent }, { activeTabHighlight: 'YES' }));
             const c = ourColors();
-            assert.equal((c['tab.activeForeground'] || '').toLowerCase(),
-                themeBases.accent.toLowerCase());
-            assert.equal((c['tab.activeBorderTop'] || '').toLowerCase(),
-                themeBases.accent.toLowerCase());
-            assert.equal((c['tab.activeBorder'] || '').toLowerCase(),
-                themeBases.accent.toLowerCase());
+            assert.equal((c['tab.activeForeground'] || '').toLowerCase(), accent);
+            assert.equal((c['tab.activeBorderTop'] || '').toLowerCase(), accent);
+            assert.equal((c['tab.activeBorder'] || '').toLowerCase(), accent);
             assert.ok(c['tab.activeBackground'],
                 'tab.activeBackground must be tinted');
         });
@@ -340,16 +339,16 @@ describe('Apply pipeline — full integration', function () {
 
     describe('applyQuick — Cursor-Line-Glow toggle', () => {
         it('YES paints cursor + active line + active line number with the accent', async () => {
-            await applyQuick(fakeCtx, buildCss(themeBases, {}, { cursorLineGlow: 'YES' }));
+            // An accent that reads on the editor: a dim one is lifted to 4.5:1 for the line number.
+            const accent = '#ff8800';
+            await applyQuick(fakeCtx, buildCss(themeBases, { accent }, { cursorLineGlow: 'YES' }));
             const c = ourColors();
-            assert.equal((c['editorCursor.foreground'] || '').toLowerCase(),
-                themeBases.accent.toLowerCase());
-            assert.equal((c['editorLineNumber.activeForeground'] || '').toLowerCase(),
-                themeBases.accent.toLowerCase());
+            assert.equal((c['editorCursor.foreground'] || '').toLowerCase(), accent);
+            assert.equal((c['editorLineNumber.activeForeground'] || '').toLowerCase(), accent);
             const bg = c['editor.lineHighlightBackground'] || '';
             const border = c['editor.lineHighlightBorder'] || '';
-            assert.ok(bg.toUpperCase().startsWith(themeBases.accent.toUpperCase()));
-            assert.ok(border.toUpperCase().startsWith(themeBases.accent.toUpperCase()));
+            assert.ok(bg.toLowerCase().startsWith(accent));
+            assert.ok(border.toLowerCase().startsWith(accent));
         });
 
         it('NO removes the line highlight and softens the cursor', async () => {
